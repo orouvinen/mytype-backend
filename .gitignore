@@ -1,0 +1,10 @@
+public/
+build/
+node_modules/
+*.log
+deploy.sh
+.tern-project
+.jshintrc
+.eslintrc
+app-build.js
+.env
