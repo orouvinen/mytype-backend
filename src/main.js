@@ -35,11 +35,10 @@ const dbConfig = {
 const db = new pg.Pool(dbConfig);
 
 
-// Frontend build and static assets in ./public
-//app.use(express.static('public'));
+// Frontend build and static assets from under public/
+app.use(express.static('public'));
 
 // Rest of the urls are for front-end
-// UNCOMMENT
 app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public/index.html'));
 });
