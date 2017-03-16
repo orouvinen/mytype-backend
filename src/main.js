@@ -57,11 +57,9 @@ app.post('/api/user', jsonParser, (req, res) => {
   db.query("INSERT INTO users(name, email, password) VALUES ($1, $2, $3)",
     [name, email, password])
     .then(result => {
-      res.status(200);
-      res.json({ success: "true" });
+      res.status(200).json({ success: "true" });
     }).catch(error => {
-      res.status(409);
-      res.json({ error: error.detail });
+      res.status(409).json({ error: error.detail });
     });
 });
 
