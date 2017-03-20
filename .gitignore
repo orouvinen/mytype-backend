@@ -9,3 +9,4 @@ deploy.sh
 .eslintrc
 app-build.js
 .env
+dev_doc/
