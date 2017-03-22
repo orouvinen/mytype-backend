@@ -7,6 +7,11 @@ var async   = require('async');
 var path    = require('path');
 var url     = require('url');
 var bodyParser = require('body-parser');
+var jwt    = require('jsonwebtoken');
+var config = require('./config');
+
+import * as auth from './auth';
+import { isEmpty } from './util';
 
 var app = express();
 
@@ -19,11 +24,11 @@ var serverOptions = {
 };
 
 const params = url.parse(process.env.DATABASE_URL);
-const auth = params.auth.split(':');
+const dbAuth = params.auth.split(':');
 
 const dbConfig = {
-  user: auth[0],
-  password: auth[1],
+  user: dbAuth[0],
+  password: dbAuth[1],
   host: params.hostname,
   port: params.port,
   database: params.pathname.split('/')[1],
@@ -33,36 +38,17 @@ const dbConfig = {
 };
 
 // Create a connection pool for db queries
-const db = new pg.Pool(dbConfig);
-
+export const db = new pg.Pool(dbConfig);
 
 // Frontend build and static assets from under public/
 app.use(express.static('public'));
 
+// JSON parser needed for API requests
 var jsonParser = bodyParser.json();
 
-/*
- * Create a user
- * Params (in request body):
- *  "name": username
- *  "email": email address
- *  "password": password
- */
-app.post('/api/user', jsonParser, (req, res) => {
-  if (isEmpty(req.body))
-    return res.status(400).json({ error: "Missing request body" });
-
-  const { name, email, password } = req.body;
-
-  db.query("INSERT INTO users(name, email, password) VALUES ($1, $2, $3)",
-    [name, email, password])
-    .then(result => {
-      res.status(200).json({ success: "true" });
-    }).catch(error => {
-      res.status(409).json({ error: error.detail });
-    });
-});
-
+// Routes
+app.post('/api/user', jsonParser, auth.createUser);
+app.post('/api/authenticate', jsonParser, auth.authenticate);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
@@ -73,6 +59,3 @@ app.get('*', (req, res) => {
 app.listen(serverOptions.port, () => {
   console.log('listening on port %s', serverOptions.port);
 });
-
-
-const isEmpty = obj => Object.keys(obj).length === 0;
