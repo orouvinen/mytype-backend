@@ -53,7 +53,7 @@ export const authenticate = (req, res) => {
   else if (authHeader !== 'Bearer')
     return res.status(400).json({ error: "Invalid WWW-Authenticate header"});
 
-  // Retrieve password has and the salt that it was generated with,
+  // Retrieve password hash and the salt that it was generated with,
   // and compare the hash to a hash generated from the same salt
   // together with the password in the request.
   // If they match, then the password is correct.
