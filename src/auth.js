@@ -4,7 +4,9 @@
 
 import { db } from './main';
 import { isEmpty } from './util';
+import { secret } from './config';
 
+var jwt = require('jsonwebtoken');
 var crypto = require('crypto');
 
 /*
@@ -44,25 +46,37 @@ export const createUser = (req, res) => {
 export const authenticate = (req, res) => {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
-  if (!req.header('WWW-Authenticate'))
+  const authHeader = req.header('WWW-Authenticate');
+  console.log(authHeader);
+  if (!authHeader)
     return res.status(400).json({ error: "Missing auth header "});
+  else if (authHeader !== 'Bearer')
+    return res.status(400).json({ error: "Invalid WWW-Authenticate header"});
 
   // Retrieve password has and the salt that it was generated with,
   // and compare the hash to a hash generated from the same salt
   // together with the password in the request.
   // If they match, then the password is correct.
-  db.query('SELECT password, salt FROM users WHERE email=$1', [req.body.email])
+  db.query('SELECT password, salt, name, admin FROM users WHERE email=$1', [req.body.email])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(401).end(); // no user found
 
-      const { password, salt } = result.rows[0];
+      const { password, salt, name, admin } = result.rows[0];
+      console.log(name);
+      console.log(admin);
+      const email = req.body.email;
 
       passwordHash(req.body.password, salt).then(hash => {
         if (hash !== password)
           res.status(401).end(); // invalid password
-        else
-          res.status(200).json({"token": "greatsuccess!"});
+        else {
+          const token = createToken(name, email, admin);
+          res.status(200).json({
+            "user": { name, email, admin },
+            "token": token
+          });
+        }
       });
     })
     .catch(err => {
@@ -70,6 +84,23 @@ export const authenticate = (req, res) => {
     });
 };
 
+/*
+ * Create an auth token
+ * Args:
+ *  name: username
+ *  email: account email address
+ *  admin: admin flag
+ *
+ * Returns the JWT as a string
+ */
+const createToken = (name, email, admin) => {
+  const payload = {
+    name,
+    email,
+    admin,
+  };
+  return jwt.sign(payload, secret, { expiresIn: '8h' });
+};
 
 const iterations = 10000;
 const keyLength = 64; // 128 char hex string
