@@ -63,8 +63,6 @@ export const authenticate = (req, res) => {
         return res.status(401).end(); // no user found
 
       const { password, salt, name, admin } = result.rows[0];
-      console.log(name);
-      console.log(admin);
       const email = req.body.email;
 
       passwordHash(req.body.password, salt).then(hash => {
