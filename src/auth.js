@@ -44,36 +44,36 @@ export const createUser = (req, res) => {
 export const authenticate = (req, res) => {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
+  if (!req.header('WWW-Authenticate'))
+    return res.status(400).json({ error: "Missing auth header "});
 
-  // - get salt from DB
-  // - generate hash from req.body.password with salt
-  // - compare generated hash to the one stored in db
-  // - if equal -> return JWT with 200 OK
-  // - else 401
-
-  passwordHash(req.body.password, salt).then(hash => {
-  }).catch(err => {
-    console.log(err);
-  });
-  /*
-  db.query("SELECT password, salt FROM users WHERE email=$1",
-    [req.body.email])
+  // Retrieve password has and the salt that it was generated with,
+  // and compare the hash to a hash generated from the same salt
+  // together with the password in the request.
+  // If they match, then the password is correct.
+  db.query('SELECT password, salt FROM users WHERE email=$1', [req.body.email])
     .then(result => {
       if (result.rows.length === 0)
-        res.status(401).json({ error: "Invalid user account" });
+        return res.status(401).end(); // no user found
 
+      const { password, salt } = result.rows[0];
+
+      passwordHash(req.body.password, salt).then(hash => {
+        if (hash !== password)
+          res.status(401).end(); // invalid password
+        else
+          res.status(200).json({"token": "greatsuccess!"});
+      });
     })
-    .catch(error => {
-      res.status(400);
+    .catch(err => {
+      res.status(500).end();
     });
-    */
-  res.status(400).json({ error: "foo" });
 };
+
 
 const iterations = 10000;
 const keyLength = 64; // 128 char hex string
 const saltBytes = 14; // 28 char base64 string
-
 
 // Generates a hash from a plaintext password using salt
 const passwordHash = (plaintext, salt) => {
