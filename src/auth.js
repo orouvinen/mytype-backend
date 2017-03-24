@@ -44,10 +44,12 @@ export const createUser = (req, res) => {
  * "password": account password
  */
 export const authenticate = (req, res) => {
+  // Validate request body
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
+  
+  // Validate request header 
   const authHeader = req.header('WWW-Authenticate');
-  console.log(authHeader);
   if (!authHeader)
     return res.status(400).json({ error: "Missing auth header "});
   else if (authHeader !== 'Bearer')
