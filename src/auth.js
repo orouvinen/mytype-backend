@@ -4,10 +4,10 @@
 
 import { db } from './main';
 import { isEmpty } from './util';
-import { secret } from './config';
 
 var jwt = require('jsonwebtoken');
 var crypto = require('crypto');
+const secret = process.env.SECRET;
 
 /*
  * Create a user
