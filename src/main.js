@@ -8,7 +8,6 @@ var path    = require('path');
 var url     = require('url');
 var bodyParser = require('body-parser');
 var jwt    = require('jsonwebtoken');
-var config = require('./config');
 
 import * as auth from './auth';
 import { isEmpty } from './util';
