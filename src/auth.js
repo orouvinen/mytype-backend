@@ -104,7 +104,7 @@ const createToken = (name, email, admin) => {
 
 const iterations = 10000;
 const keyLength = 64; // 128 char hex string
-const saltBytes = 14; // 28 char base64 string
+const saltBytes = 14; // 20 char base64 string
 
 // Generates a hash from a plaintext password using salt
 const passwordHash = (plaintext, salt) => {
