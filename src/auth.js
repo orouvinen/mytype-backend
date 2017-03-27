@@ -59,21 +59,21 @@ export const authenticate = (req, res) => {
   // and compare the hash to a hash generated from the same salt
   // together with the password in the request.
   // If they match, then the password is correct.
-  db.query('SELECT password, salt, name, admin FROM users WHERE email=$1', [req.body.email])
+  db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1', [req.body.email])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(401).end(); // no user found
 
-      const { password, salt, name, admin } = result.rows[0];
+      const { id, password, salt, name, admin } = result.rows[0];
       const email = req.body.email;
 
       passwordHash(req.body.password, salt).then(hash => {
         if (hash !== password)
           res.status(401).end(); // invalid password
         else {
-          const token = createToken(name, email, admin);
+          const token = createToken(id, name, email, admin);
           res.status(200).json({
-            "user": { name, email, admin },
+            "user": { id, name, email, admin },
             "token": token
           });
         }
@@ -87,14 +87,16 @@ export const authenticate = (req, res) => {
 /*
  * Create an auth token
  * Args:
+ *  id:   user id
  *  name: username
  *  email: account email address
  *  admin: admin flag
  *
  * Returns the JWT as a string
  */
-const createToken = (name, email, admin) => {
+const createToken = (id, name, email, admin) => {
   const payload = {
+    id,
     name,
     email,
     admin,
