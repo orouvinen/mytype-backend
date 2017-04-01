@@ -46,7 +46,7 @@ app.use(express.static('public'));
 var jsonParser = bodyParser.json();
 
 // Routes
-app.post('/api/user', jsonParser, auth.createUser);
+app.post('/api/users', jsonParser, auth.createUser);
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 
 // Rest of the urls are for front-end
