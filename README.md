@@ -1,5 +1,7 @@
 # MyType backend
 
+(The front-end can be found in another [repository](https://github.com/orouvinen/mytype-frontend)).
+
 ## Installation
 ```
 npm install
