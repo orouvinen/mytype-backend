@@ -23,10 +23,14 @@ export const createUser = (req, res) => {
   const { name, email, password } = req.body;
   const salt = randomSalt().toString('base64');
   passwordHash(password, salt).then(hash => {
-    db.query("INSERT INTO users(name, email, password, salt) VALUES ($1, $2, $3, $4)",
+    db.query("INSERT INTO users(name, email, password, salt) VALUES ($1, $2, $3, $4) RETURNING id",
       [name, email, hash, salt])
       .then(result => {
-        res.status(200).json({ success: "true" });
+        // When succesfully fulfilling the request, send a 201 Created-response with
+        // a Location-header stating the URI for the created user
+        const newUserId = result.rows[0].id;
+        res.set('Location', '/api/users/' + newUserId);
+        res.sendStatus(201);
       })
       .catch(error => {
         res.status(409).json({ error: error.detail });
@@ -47,8 +51,8 @@ export const authenticate = (req, res) => {
   // Validate request body
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
-  
-  // Validate request header 
+
+  // Validate request header
   const authHeader = req.header('WWW-Authenticate');
   if (!authHeader)
     return res.status(400).json({ error: "Missing auth header "});
