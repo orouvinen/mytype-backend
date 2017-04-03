@@ -55,9 +55,9 @@ export const authenticate = (req, res) => {
   // Validate request header
   const authHeader = req.header('WWW-Authenticate');
   if (!authHeader)
-    return res.status(400).json({ error: "Missing auth header "});
+    return res.status(400).json({ error: "Missing auth header" });
   else if (authHeader !== 'Bearer')
-    return res.status(400).json({ error: "Invalid WWW-Authenticate header"});
+    return res.status(400).json({ error: "Invalid WWW-Authenticate header" });
 
   // Retrieve password hash and the salt that it was generated with,
   // and compare the hash to a hash generated from the same salt
@@ -66,14 +66,14 @@ export const authenticate = (req, res) => {
   db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1', [req.body.email])
     .then(result => {
       if (result.rows.length === 0)
-        return res.status(401).end(); // no user found
+        return res.status(401).json({ error: "User account not found" });
 
       const { id, password, salt, name, admin } = result.rows[0];
       const email = req.body.email;
 
       passwordHash(req.body.password, salt).then(hash => {
         if (hash !== password)
-          res.status(401).end(); // invalid password
+          res.status(401).json({ error: "Invalid password" });
         else {
           const token = createToken(id, name, email, admin);
           res.status(200).json({
