@@ -30,7 +30,7 @@ export const createUser = (req, res) => {
         // a Location-header stating the URI for the created user
         const newUserId = result.rows[0].id;
         res.set('Location', '/api/users/' + newUserId);
-        res.sendStatus(201);
+        res.status(201).end();
       })
       .catch(error => {
         res.status(409).json({ error: error.detail });
