@@ -7,7 +7,7 @@ var async   = require('async');
 var path    = require('path');
 var url     = require('url');
 var bodyParser = require('body-parser');
-var jwt    = require('jsonwebtoken');
+var jwt     = require('express-jwt');
 
 import * as auth from './auth';
 import { isEmpty } from './util';
@@ -45,9 +45,17 @@ app.use(express.static('public'));
 // JSON parser needed for API requests
 var jsonParser = bodyParser.json();
 
+// Auth token checker middleware for routes that need authorization for access
+const tokenChecker = (err, req, res, next) => {
+  if (err.name === 'UnauthorizedError')
+    res.status(401).json({ error: "Invalid auth token "});
+  next();
+};
+
 // Routes
 app.post('/api/users', jsonParser, auth.createUser);
 app.post('/api/authenticate', jsonParser, auth.authenticate);
+app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, auth.getUser);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {

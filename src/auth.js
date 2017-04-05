@@ -7,7 +7,7 @@ import { isEmpty } from './util';
 
 var jwt = require('jsonwebtoken');
 var crypto = require('crypto');
-const secret = process.env.SECRET;
+export const secret = process.env.SECRET;
 
 /*
  * Create a user
@@ -87,6 +87,22 @@ export const authenticate = (req, res) => {
       res.status(500).end();
     });
 };
+
+
+/*
+ * Return info about user account
+ */
+export const getUser = (req, res) => {
+  db.query('SELECT id, name FROM users WHERE id=$1', [req.params.id])
+    .then(result => {
+      if (result.rows.length === 0)
+        return res.status(404).json({ error: "User not found" });
+
+      const { id, name } = result.rows[0];
+      return res.status(200).json({ id, name });    
+    });
+};
+
 
 /*
  * Create an auth token
