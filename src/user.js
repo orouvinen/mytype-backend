@@ -13,7 +13,7 @@ export const getUser = (req, res) => {
         return res.status(404).json({ error: "User not found" });
 
       const { id, name } = result.rows[0];
-      return res.status(200).json({ id, name });
+      return res.status(200).json({"user": { id, name }});
     });
 };
 
