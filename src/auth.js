@@ -23,11 +23,12 @@ export const createUser = (req, res) => {
   const { name, email, password } = req.body;
   const salt = randomSalt().toString('base64');
   passwordHash(password, salt).then(hash => {
-    db.query("INSERT INTO users(name, email, password, salt) VALUES ($1, $2, $3, $4) RETURNING id",
+    db.query("INSERT INTO users(name, email, password, salt) VALUES " +
+             "($1, $2, $3, $4) RETURNING id",
       [name, email, hash, salt])
       .then(result => {
-        // When succesfully fulfilling the request, send a 201 Created-response with
-        // a Location-header stating the URI for the created user
+        // When succesfully fulfilling the request, send a 201 Created-response
+        // with a Location-header stating the URI for the created user
         const newUserId = result.rows[0].id;
         res.set('Location', '/api/users/' + newUserId);
         res.status(201).end();
@@ -42,7 +43,7 @@ export const createUser = (req, res) => {
 };
 
 /*
- * Authenticate in order to retrieve a JWT.
+ * Authenticate user account
  *
  * "email": account email address
  * "password": account password
@@ -60,10 +61,11 @@ export const authenticate = (req, res) => {
     return res.status(400).json({ error: "Invalid WWW-Authenticate header" });
 
   // Retrieve password hash and the salt that it was generated with,
-  // and compare the hash to a hash generated from the same salt
+  // then compare the stored hash to a hash generated from the same salt
   // together with the password in the request.
   // If they match, then the password is correct.
-  db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1', [req.body.email])
+  db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1',
+    [req.body.email])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(401).json({ error: "User account not found" });
@@ -90,7 +92,7 @@ export const authenticate = (req, res) => {
 
 
 /*
- * Return info about user account
+ * Return user account data
  */
 export const getUser = (req, res) => {
   db.query('SELECT id, name FROM users WHERE id=$1', [req.params.id])
@@ -103,10 +105,12 @@ export const getUser = (req, res) => {
     });
 };
 
+
 /*
- * Delete account
+ * Delete user account
  */
 export const deleteUser = (req, res) => {
+  // For non-admins, only allow deleting your own account
   if (req.user.id !== req.params.id && !req.user.admin)
     return res.status(401).json({ error: "Not permitted" });
 
@@ -121,6 +125,7 @@ export const deleteUser = (req, res) => {
       res.status(500).end();
     });
 };
+
 
 /*
  * Create an auth token
@@ -142,19 +147,22 @@ const createToken = (id, name, email, admin) => {
   return jwt.sign(payload, secret, { expiresIn: '8h' });
 };
 
+
 const iterations = 10000;
 const keyLength = 64; // 128 char hex string
 const saltBytes = 14; // 20 char base64 string
 
+
 // Generates a hash from a plaintext password using salt
 const passwordHash = (plaintext, salt) => {
   return new Promise((resolve, reject) => {
-    crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512', (err, key) => {
-      if (err)
-        reject(err.message);
-      else
-        resolve(key.toString('hex'));
-    });
+    crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512',
+      (err, key) => {
+        if (err)
+          reject(err.message);
+        else
+          resolve(key.toString('hex'));
+      });
   });
 };
 
