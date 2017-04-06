@@ -10,6 +10,7 @@ var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 
 import * as auth from './auth';
+import * as user from './user';
 import { isEmpty } from './util';
 
 var app = express();
@@ -55,10 +56,11 @@ const tokenChecker = (err, req, res, next) => {
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 app.post('/api/users', jsonParser, auth.createUser);
 app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker,
-  jsonParser, auth.getUser);
+  jsonParser, user.getUser);
 app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker,
-  jsonParser, auth.deleteUser);
-
+  jsonParser, user.deleteUser);
+app.get('/api/users/:id/typingtests', jwt({ secret: auth.secret }),
+  jsonParser, user.getUserTypingTests);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
