@@ -99,10 +99,28 @@ export const getUser = (req, res) => {
         return res.status(404).json({ error: "User not found" });
 
       const { id, name } = result.rows[0];
-      return res.status(200).json({ id, name });    
+      return res.status(200).json({ id, name });
     });
 };
 
+/*
+ * Delete account
+ */
+export const deleteUser = (req, res) => {
+  if (req.user.id !== req.params.id && !req.user.admin)
+    return res.status(401).json({ error: "Not permitted" });
+
+  db.query('DELETE FROM users WHERE id=$1 RETURNING id', [req.params.id])
+    .then(result => {
+      if (result.rows.length === 0)
+        return res.status(404).json({ error: "User not found" });
+      else
+        return res.status(204).end();
+    })
+    .catch(err => {
+      res.status(500).end();
+    });
+};
 
 /*
  * Create an auth token

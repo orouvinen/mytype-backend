@@ -56,6 +56,7 @@ const tokenChecker = (err, req, res, next) => {
 app.post('/api/users', jsonParser, auth.createUser);
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, auth.getUser);
+app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, auth.deleteUser);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
