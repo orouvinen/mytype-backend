@@ -10,6 +10,7 @@ var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 
 import * as auth from './auth';
+import * as typingTest from './typingtest';
 import * as user from './user';
 import { isEmpty } from './util';
 
@@ -61,7 +62,8 @@ app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker,
   jsonParser, user.deleteUser);
 app.get('/api/users/:id/typingtests', jwt({ secret: auth.secret }),
   jsonParser, user.getUserTypingTests);
-
+app.post('/api/typingtests/', jwt({ secret: auth.secret }),
+  jsonParser, typingTest.saveTypingTest);
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public/index.html'));
