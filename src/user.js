@@ -45,7 +45,7 @@ export const deleteUser = (req, res) => {
 export const getUserTypingTests = (req, res) => {
   let typingTests = [];
   db.query('SELECT starttime, wpm, acc ' +
-    'FROM typingtests WHERE user_id=$1 ORDER BY starttime', [req.params.id])
+    'FROM typed_tests WHERE user_id=$1 ORDER BY starttime', [req.params.id])
     .then(result => {
       typingTests = result.rows.map(row => {
         return {
