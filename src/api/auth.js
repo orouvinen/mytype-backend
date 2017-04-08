@@ -2,8 +2,8 @@
  * Auth/account API functions
  */
 
-import { db } from './main';
-import { isEmpty } from './util';
+import { db } from '../main';
+import { isEmpty } from '../util';
 
 var jwt = require('jsonwebtoken');
 var crypto = require('crypto');

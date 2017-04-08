@@ -9,9 +9,9 @@ var url     = require('url');
 var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 
-import * as auth from './auth';
-import * as typingTest from './typingtest';
-import * as user from './user';
+import * as auth from './api/auth';
+import * as typingTest from './api/typingtest';
+import * as user from './api/user';
 import { isEmpty } from './util';
 
 var app = express();

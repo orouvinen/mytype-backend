@@ -1,4 +1,4 @@
-import { db } from './main';
+import { db } from '../main';
 
 export const createTypingTest = (req, res) => {
   const { lang, createdAt, finished } = req.body;

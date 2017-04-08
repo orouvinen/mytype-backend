@@ -1,4 +1,4 @@
-import { db } from './main';
+import { db } from '../main';
 /*
  * /api/users/
  */
