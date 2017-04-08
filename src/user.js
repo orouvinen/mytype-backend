@@ -1,3 +1,4 @@
+import { db } from './main';
 /*
  * /api/users/
  */
@@ -40,24 +41,46 @@ export const deleteUser = (req, res) => {
 
 
 /*
- * Return user's typed typing tests
+ * Return typing tests in which user has participated
  */
-export const getUserTypingTests = (req, res) => {
-  let typingTests = [];
-  db.query('SELECT starttime, wpm, acc ' +
-    'FROM typed_tests WHERE user_id=$1 ORDER BY starttime', [req.params.id])
-    .then(result => {
-      typingTests = result.rows.map(row => {
-        return {
-          startTime: row.starttime,
-          endTime: row.endTime,
-          wpm: row.wpm,
-          acc: row.acc,
-        };
-      });
-      res.status(200).json({ typingTests });
+export const getUserResults = (req, res) => {
+  loadUserResults(req.params.id)
+    .then(results => {
+      res.status(200).json({ "results": results });
     })
     .catch(err => {
-      res.status(500).end();
+      res.status(501).end();
     });
+};
+
+
+export const saveResult = (req, res) => {
+
+};
+
+
+/*******************************************************************************
+ *
+ * Loaders used by API workers.
+ * These typically load an array of objects to be further transformed or
+ * joined to another object by the main API worker.
+ */
+const loadUserResults = userId => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
+      [userId])
+      .then(result => {
+        resolve(result.rows.map(row => {
+          return {
+            startTime: row.start_time,
+            endTime: row.end_time,
+            wpm: row.wpm,
+            acc: row.acc,
+          };
+        }));
+      })
+      .catch(err => {
+        reject(err);
+      });
+  });
 };

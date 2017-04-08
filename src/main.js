@@ -56,14 +56,15 @@ const tokenChecker = (err, req, res, next) => {
 // Routes
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 app.post('/api/users', jsonParser, auth.createUser);
-app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker,
-  jsonParser, user.getUser);
-app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker,
-  jsonParser, user.deleteUser);
-app.get('/api/users/:id/typingtests', jwt({ secret: auth.secret }),
-  jsonParser, user.getUserTypingTests);
-app.post('/api/typingtests/', jwt({ secret: auth.secret }),
-  jsonParser, typingTest.saveTypingTest);
+app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.getUser);
+app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.deleteUser);
+
+app.post('/api/typingtests', jwt({ secret: auth.secret }), jsonParser, typingTest.createTypingTest);
+app.get('/api/competitions', jsonParser, typingTest.getCompetitions);
+app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
+app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), jsonParser, user.saveResult);
+
+
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public/index.html'));

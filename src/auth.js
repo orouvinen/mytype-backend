@@ -33,12 +33,12 @@ export const createUser = (req, res) => {
         res.set('Location', '/api/users/' + newUserId);
         res.status(201).end();
       })
-      .catch(error => {
-        res.status(409).json({ error: error.detail });
+      .catch(err => {
+        res.status(409).json({ error: err.message });
       });
   })
   .catch(err => {
-    res.status(400).json({ error: err });
+    res.status(400).json({ error: err.message });
   });
 };
 
