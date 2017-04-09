@@ -1,16 +1,25 @@
 import { db } from '../main';
+import { addCompetition } from '../competition-store';
 
 export const createTypingTest = (req, res) => {
-  const { lang, createdAt, finished, competition } = req.body;
+  const { language, createdAt, finished, competition } = req.body;
 
   db.query('INSERT INTO typing_tests(language, created_at, competition) ' +
-    'VALUES ($1, $2, $3) RETURNING id', [lang, createdAt, competition])
+    'VALUES ($1, $2, $3) RETURNING id, language', [language, createdAt, competition])
     .then(result => {
       if (result.rows.length !== 1)
         return res.status(501).end();
       else {
         const typingTestId = result.rows[0].id;
-
+        
+        // If it's a competition, add it to the competition store
+        if (competition) {
+          addCompetition({ 
+            id: typingTestId,
+            createdAt,
+            language
+          });
+        }
         res.set('Location', '/api/typingtests/' + typingTestId);
         res.status(201).end();
       }
