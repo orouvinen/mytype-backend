@@ -1,15 +1,16 @@
 import { db } from '../main';
 
 export const createTypingTest = (req, res) => {
-  const { lang, createdAt, finished } = req.body;
+  const { lang, createdAt, finished, competition } = req.body;
 
-  db.query('INSERT INTO typing_tests(language, created_at) ' +
-    'VALUES ($1, $2) RETURNING id', [lang, createdAt])
+  db.query('INSERT INTO typing_tests(language, created_at, competition) ' +
+    'VALUES ($1, $2, $3) RETURNING id', [lang, createdAt, competition])
     .then(result => {
       if (result.rows.length !== 1)
         return res.status(501).end();
       else {
         const typingTestId = result.rows[0].id;
+
         res.set('Location', '/api/typingtests/' + typingTestId);
         res.status(201).end();
       }
