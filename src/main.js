@@ -8,14 +8,18 @@ var path    = require('path');
 var url     = require('url');
 var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
-var io      = require('socket.io');
+var http    = require('http');
+var socketIO = require('socket.io')
+
 
 import * as auth from './api/auth';
 import * as typingTest from './api/typingtest';
 import * as user from './api/user';
 import { isEmpty } from './util';
+import { newClient } from './competition-store';
 
 var app = express();
+var io = socketIO(http.Server(app)); 
 
 var host = 'localhost';
 if (process.env.PORT)
@@ -71,6 +75,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public/index.html'));
 });
 
+// Grab incoming websocket connections
+io.on('connection', newClient);
 
 app.listen(serverOptions.port, () => {
   console.log('listening on port %s', serverOptions.port);
