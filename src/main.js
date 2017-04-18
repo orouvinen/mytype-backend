@@ -9,8 +9,7 @@ var url     = require('url');
 var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 var http    = require('http');
-var socketIO = require('socket.io')
-
+var socketIO = require('socket.io');
 
 import * as auth from './api/auth';
 import * as typingTest from './api/typingtest';
@@ -18,8 +17,10 @@ import * as user from './api/user';
 import { isEmpty } from './util';
 import { newClient } from './competition-store';
 
+
 var app = express();
-var io = socketIO(http.Server(app)); 
+var server = http.createServer(app);
+var io = socketIO.listen(server);
 
 var host = 'localhost';
 if (process.env.PORT)
@@ -78,6 +79,6 @@ app.get('*', (req, res) => {
 // Grab incoming websocket connections
 io.on('connection', newClient);
 
-app.listen(serverOptions.port, () => {
+server.listen(serverOptions.port, () => {
   console.log('listening on port %s', serverOptions.port);
 });
