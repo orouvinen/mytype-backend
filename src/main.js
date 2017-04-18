@@ -8,6 +8,7 @@ var path    = require('path');
 var url     = require('url');
 var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
+var io      = require('socket.io');
 
 import * as auth from './api/auth';
 import * as typingTest from './api/typingtest';
