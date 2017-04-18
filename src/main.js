@@ -51,7 +51,7 @@ var jsonParser = bodyParser.json();
 // Auth token checker middleware for routes that need authorization for access
 const tokenChecker = (err, req, res, next) => {
   if (err.name === 'UnauthorizedError')
-    res.status(401).json({ error: "Invalid auth token "});
+    res.status(401).json({ error: "Invalid auth token" });
 };
 
 // Routes
