@@ -3,15 +3,19 @@
  * The store's purpose is to minimise DB I/O if the open competitions need
  * to be queried often.
  */
-import { db } from './main';
+import { db, io } from './main';
 
-const competitions = []; // Competition store (houses typing test objects) 
+export const competitions = []; // Competition store (houses typing test objects) 
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
 // Adds typing test object to the competition store
 export const addCompetition = (typingTest) => {
   competitions.push(typingTest);
-  setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTestId);
+  // send 'competitionListUpdate' to all clients
+  Object.keys(clients).forEach(client => {
+    clients[client].emit('competitionListUpdate', competitions);
+  });
+  setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTest.id);
 };
 
 
@@ -30,12 +34,24 @@ const closeCompetition = typingTestId => {
   competitions.splice(deletePos, 1);
 };
 
-// Stores client socket to client pool when they connect.
+
+// newClient(): stores client socket to client pool when they connect.
 // On disconnect, remove clients from the pool.
 export const newClient = clientSocket => {
   clients[clientSocket.id] = clientSocket;
-
   clientSocket.on('disconnect', () => {
     delete(clients[clientSocket.id]);
+  });
+};
+
+
+export const getRunningCompetitions = () => {
+  return competitions.map(comp => {
+    return {
+      id: comp.id,
+      language: comp.language,
+      created_at: comp.createdAt,
+      finished: false
+    };
   });
 };

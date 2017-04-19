@@ -20,7 +20,7 @@ import { newClient } from './competition-store';
 
 var app = express();
 var server = http.createServer(app);
-var io = socketIO.listen(server);
+export var io = socketIO(server);
 
 var host = 'localhost';
 if (process.env.PORT)
@@ -65,8 +65,9 @@ app.post('/api/users', jsonParser, auth.createUser);
 app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.getUser);
 app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.deleteUser);
 
-app.post('/api/typingtests', jwt({ secret: auth.secret }), jsonParser, typingTest.createTypingTest);
+app.post('/api/typingtests', jwt({ secret: auth.secret }), tokenChecker, jsonParser, typingTest.createTypingTest);
 app.get('/api/competitions', jsonParser, typingTest.getCompetitions);
+
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), jsonParser, user.saveResult);
 
