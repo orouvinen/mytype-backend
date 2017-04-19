@@ -66,7 +66,6 @@ app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser
 app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.deleteUser);
 
 app.post('/api/typingtests', jwt({ secret: auth.secret }), tokenChecker, jsonParser, typingTest.createTypingTest);
-app.get('/api/competitions', jsonParser, typingTest.getCompetitions);
 
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), jsonParser, user.saveResult);
