@@ -11,11 +11,9 @@ const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socke
 // Adds typing test object to the competition store
 export const addCompetition = (typingTest) => {
   competitions.push(typingTest);
-  // send 'competitionListUpdate' to all clients
-  // TODO: socket.io must have a broadcast function?
-  Object.keys(clients).forEach(client => {
-    clients[client].emit('competitionListUpdate', competitions);
-  });
+
+  // Broadcast updated competition list to clients
+  io.sockets.emit('competitionListUpdate', competitions);
   // Keep competition open for 24 hours
   setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTest.id);
 };
@@ -35,10 +33,8 @@ const closeCompetition = typingTestId => {
   const deletePos = competitions.findIndex(competition => competition.id === typingTestId);
   competitions.splice(deletePos, 1);
   
-  // Send update to clients (see comment in addCompetition)
-  Object.keys(clients).forEach(client => {
-    clients[client].emit('competitionListUpdate', competitions);
-  });
+  // Send updated list to clients
+  io.sockets.emit('competitionListUpdate', competitions);
 };
 
 
