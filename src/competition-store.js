@@ -33,6 +33,11 @@ const closeCompetition = typingTestId => {
   // Remove the competition object from the store array
   const deletePos = competitions.findIndex(competition => competition.id === typingTestId);
   competitions.splice(deletePos, 1);
+  
+  // Send update to clients (see comment in addCompetition)
+  Object.keys(clients).forEach(client => {
+    clients[client].emit('competitionListUpdate', competitions);
+  });
 };
 
 
