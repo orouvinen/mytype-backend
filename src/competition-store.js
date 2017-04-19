@@ -16,6 +16,7 @@ export const addCompetition = (typingTest) => {
   Object.keys(clients).forEach(client => {
     clients[client].emit('competitionListUpdate', competitions);
   });
+  // Keep competition open for 24 hours
   setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTest.id);
 };
 
