@@ -9,7 +9,7 @@ export const competitions = []; // Competition store (houses typing test objects
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
 // Adds typing test object to the competition store
-export const addCompetition = (typingTest) => {
+export const addCompetition = typingTest => {
   competitions.push(typingTest);
 
   // Broadcast updated competition list to clients

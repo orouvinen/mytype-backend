@@ -22,6 +22,7 @@ export const createTypingTest = (req, res) => {
             createdAt: result.rows[0].created_at,
             language,
             finished: false,
+            createdBy: req.user.name,
           });
         }
         res.set('Location', '/api/typingtests/' + typingTestId);
