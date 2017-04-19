@@ -35,12 +35,6 @@ export function createTypingTest(req, res) {
 }
 
 
-function getCompetition(req, res) {
-  // if req.params.id is found in competition store, return it,
-  // otherwise get the competition from database?
-}
-
-
 export function getCompetitions(req, res) {
   loadCompetitions(req.query)
     .then(rows => {
