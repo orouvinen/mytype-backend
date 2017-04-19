@@ -12,6 +12,7 @@ const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socke
 export const addCompetition = (typingTest) => {
   competitions.push(typingTest);
   // send 'competitionListUpdate' to all clients
+  // TODO: socket.io must have a broadcast function?
   Object.keys(clients).forEach(client => {
     clients[client].emit('competitionListUpdate', competitions);
   });
