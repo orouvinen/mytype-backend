@@ -41,7 +41,7 @@ function getCompetition(req, res) {
 }
 
 
-function getCompetitions(req, res) {
+export function getCompetitions(req, res) {
   loadCompetitions(req.query)
     .then(rows => {
       res.status(200).json({ competitions: rows });
