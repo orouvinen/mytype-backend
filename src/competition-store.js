@@ -8,12 +8,17 @@ import { db, io } from './main';
 export const competitions = []; // Competition store (houses typing test objects) 
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
+
+// Send list of competitions to all connected sockets
+function broadcastCompetitions() {
+  io.sockets.emit('competitionListUpdate', competitions);
+}
+
 // Adds typing test object to the competition store
 export const addCompetition = typingTest => {
   competitions.push(typingTest);
 
-  // Broadcast updated competition list to clients
-  io.sockets.emit('competitionListUpdate', competitions);
+  broadcastCompetitions();
   // Keep competition open for 24 hours
   setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTest.id);
 };
@@ -32,9 +37,7 @@ const closeCompetition = typingTestId => {
   // Remove the competition object from the store array
   const deletePos = competitions.findIndex(competition => competition.id === typingTestId);
   competitions.splice(deletePos, 1);
-  
-  // Send updated list to clients
-  io.sockets.emit('competitionListUpdate', competitions);
+  broadcastCompetitions();
 };
 
 
@@ -45,8 +48,8 @@ export const newClient = clientSocket => {
   clientSocket.on('disconnect', () => {
     delete(clients[clientSocket.id]);
   });
+  broadcastCompetitions();
 };
-
 
 export const getRunningCompetitions = () => {
   return competitions.map(comp => {
