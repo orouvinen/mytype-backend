@@ -7,7 +7,7 @@ import { db } from '../main';
 /*
  * Return user account data
  */
-export const getUser = (req, res) => {
+export function getUser(req, res) {
   db.query('SELECT id, name FROM users WHERE id=$1', [req.params.id])
     .then(result => {
       if (result.rows.length === 0)
@@ -16,13 +16,13 @@ export const getUser = (req, res) => {
       const { id, name } = result.rows[0];
       return res.status(200).json({"user": { id, name }});
     });
-};
+}
 
 
 /*
  * Delete user account
  */
-export const deleteUser = (req, res) => {
+export function deleteUser(req, res) {
   // For non-admins, only allow deleting your own account
   if (req.user.id !== req.params.id && !req.user.admin)
     return res.status(401).json({ error: "Not permitted" });
@@ -37,13 +37,13 @@ export const deleteUser = (req, res) => {
     .catch(err => {
       res.status(500).end();
     });
-};
+}
 
 
 /*
  * Return typing tests in which user has participated
  */
-export const getUserResults = (req, res) => {
+export function getUserResults(req, res) {
   loadUserResults(req.params.id)
     .then(results => {
       res.status(200).json({ "results": results });
@@ -51,12 +51,12 @@ export const getUserResults = (req, res) => {
     .catch(err => {
       res.status(501).end();
     });
-};
+}
 
 
-export const saveResult = (req, res) => {
+export function saveResult(req, res) {
 
-};
+}
 
 
 /*******************************************************************************
@@ -65,7 +65,7 @@ export const saveResult = (req, res) => {
  * These typically load an array of objects to be further transformed or
  * joined to another object by the main API worker.
  */
-const loadUserResults = userId => {
+function loadUserResults(req, res) {
   return new Promise((resolve, reject) => {
     db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
       [userId])
@@ -83,4 +83,4 @@ const loadUserResults = userId => {
         reject(err);
       });
   });
-};
+}

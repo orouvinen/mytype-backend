@@ -16,7 +16,7 @@ export const secret = process.env.SECRET;
  *  "email": email address
  *  "password": password
  */
-export const createUser = (req, res) => {
+export function createUser(req, res) {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
@@ -40,7 +40,7 @@ export const createUser = (req, res) => {
   .catch(err => {
     res.status(400).json({ error: err.message });
   });
-};
+}
 
 /*
  * Authenticate user account
@@ -48,7 +48,7 @@ export const createUser = (req, res) => {
  * "email": account email address
  * "password": account password
  */
-export const authenticate = (req, res) => {
+export function authenticate(req, res) {
   // Validate request body
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
@@ -88,7 +88,7 @@ export const authenticate = (req, res) => {
     .catch(err => {
       res.status(500).end();
     });
-};
+}
 
 
 
@@ -103,7 +103,7 @@ export const authenticate = (req, res) => {
  *
  * Returns the JWT as a string
  */
-const createToken = (id, name, email, admin) => {
+function createToken(id, name, email, admin) {
   const payload = {
     id,
     name,
@@ -111,7 +111,7 @@ const createToken = (id, name, email, admin) => {
     admin,
   };
   return jwt.sign(payload, secret, { expiresIn: '8h' });
-};
+}
 
 
 const iterations = 10000;
@@ -120,7 +120,7 @@ const saltBytes = 14; // 20 char base64 string
 
 
 // Generates a hash from a plaintext password using salt
-const passwordHash = (plaintext, salt) => {
+function passwordHash(plaintext, salt) {
   return new Promise((resolve, reject) => {
     crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512',
       (err, key) => {
@@ -130,6 +130,9 @@ const passwordHash = (plaintext, salt) => {
           resolve(key.toString('hex'));
       });
   });
-};
+}
 
-const randomSalt = () => { return crypto.randomBytes(saltBytes); };
+
+function randomSalt() {
+  return crypto.randomBytes(saltBytes);
+}

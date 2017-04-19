@@ -27,7 +27,7 @@ export const addCompetition = typingTest => {
 // closeCompetition():
 //  Set the finished flag for the typing test in the DB and remove
 //  the typing test object from the competition store
-const closeCompetition = typingTestId => {
+function closeCompetition(typingTestId) {
   db.query('UPDATE typing_tests SET finished=true WHERE id=$1',
     [typingTestId])
     .catch(err => {
@@ -38,20 +38,18 @@ const closeCompetition = typingTestId => {
   const deletePos = competitions.findIndex(competition => competition.id === typingTestId);
   competitions.splice(deletePos, 1);
   broadcastCompetitions();
-};
+}
 
 
 // newClient(): stores client socket to client pool when they connect.
 // On disconnect, remove clients from the pool.
-export const newClient = clientSocket => {
+export function newClient(clientSocket) {
   clients[clientSocket.id] = clientSocket;
-  clientSocket.on('disconnect', () => {
-    delete(clients[clientSocket.id]);
-  });
+  clientSocket.on('disconnect', () => delete(clients[clientSocket.id]));
   broadcastCompetitions();
-};
+}
 
-export const getRunningCompetitions = () => {
+export function getRunningCompetitions() {
   return competitions.map(comp => {
     return {
       id: comp.id,
@@ -60,4 +58,4 @@ export const getRunningCompetitions = () => {
       finished: false
     };
   });
-};
+}
