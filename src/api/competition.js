@@ -2,30 +2,48 @@ import { db } from '../main';
 import { addCompetition, getRunningCompetitions } from '../competition-store';
 
 
+export function getCompetition(req, res) {
+  // First load all competition results
+  let competition = {};
+  let results = [];
+
+  db.query('SELECT usr as userId, wpm FROM results WHERE typing_test=$1 ORDER BY wpm DESC', [req.params.id])
+  .then(result => {
+    results = result.rows;
+    return db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id]);
+  })
+  .then(result => {
+    competition = result.rows[0];
+    competition.results = results;
+    res.json(competition);
+  })
+  .catch(err => {
+    res.status(500).json({ error: err.message });
+  });
+}
+
 // Creates a new typing test.
 // If the typing test is for a competition, create a competition
 // in the competition store as well.
-export function createTypingTest(req, res) {
+export function createCompetition(req, res) {
   const { language, finished, competition } = req.body;
 
-  db.query('INSERT INTO typing_tests(language, created_at, competition, finished) ' +
-    'VALUES ($1, CURRENT_TIMESTAMP, $2, $3) RETURNING id, language, created_at', [language, competition, finished])
+  db.query('INSERT INTO competitions(language, created_at) ' +
+    'VALUES ($1, CURRENT_TIMESTAMP) RETURNING id, language, created_at', [language])
     .then(result => {
       if (result.rows.length !== 1)
         return res.status(501).end();
       else {
-        const typingTestId = result.rows[0].id;
-
-        if (competition) {
+        const competitionId = result.rows[0].id;
+          // Add to competition store
           addCompetition({
-            id: typingTestId,
+            id: competitionId,
             createdAt: result.rows[0].created_at,
             language,
             finished: false,
             createdBy: req.user.name,
           });
-        }
-        res.set('Location', '/api/typingtests/' + typingTestId);
+        res.set('Location', '/api/competitions/' + competitionId);
         res.status(201).end();
       }
     })
@@ -58,12 +76,12 @@ function loadCompetitions(query) {
   if (query.hasOwnProperty('finished') && !query.finished)
     return Promise.resolve(getRunningCompetitions());
 
-  let statusFilter = 'WHERE competition=true';
+  let statusFilter = '';
   let limitClause = '';
   let offsetClause = '';
 
   if (query.hasOwnProperty('finished'))
-    statusFilter += ' AND finished=' + finished;
+    statusFilter = ' WHERE finished=' + finished;
 
   if (!isNaN(parseInt(query.limit)))
     limitClause = ' LIMIT ' + limit;
@@ -72,7 +90,7 @@ function loadCompetitions(query) {
     offsetClause = ' OFFSET ' + offset;
 
   return new Promise((resolve, reject) => {
-    db.query('SELECT id, language, created_at, finished FROM typing_tests ' +
+    db.query('SELECT id, language, created_at, finished FROM competitions ' +
       statusFilter + limitClause + offsetClause)
     .then(result => {
       resolve(result.rows);
