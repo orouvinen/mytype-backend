@@ -2,6 +2,26 @@ import { db } from '../main';
 import { addCompetition, getRunningCompetitions } from '../competition-store';
 
 
+export function getCompetition(req, res) {
+  // First load all competition results
+  let competition = {};
+  let results = [];
+
+  db.query('SELECT usr as userId, wpm FROM results WHERE typing_test=$1 ORDER BY wpm DESC', [req.params.id])
+  .then(result => {
+    results = result.rows;
+    return db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id]);
+  })
+  .then(result => {
+    competition = result.rows[0];
+    competition.results = results;
+    res.json(competition);
+  })
+  .catch(err => {
+    res.status(500).json({ error: err.message });
+  });
+}
+
 // Creates a new typing test.
 // If the typing test is for a competition, create a competition
 // in the competition store as well.
@@ -56,12 +76,12 @@ function loadCompetitions(query) {
   if (query.hasOwnProperty('finished') && !query.finished)
     return Promise.resolve(getRunningCompetitions());
 
-  let statusFilter = 'WHERE competition=true';
+  let statusFilter = '';
   let limitClause = '';
   let offsetClause = '';
 
   if (query.hasOwnProperty('finished'))
-    statusFilter += ' AND finished=' + finished;
+    statusFilter = ' WHERE finished=' + finished;
 
   if (!isNaN(parseInt(query.limit)))
     limitClause = ' LIMIT ' + limit;
