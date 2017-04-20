@@ -27,15 +27,15 @@ export const addCompetition = typingTest => {
 // closeCompetition():
 //  Set the finished flag for the typing test in the DB and remove
 //  the typing test object from the competition store
-function closeCompetition(typingTestId) {
-  db.query('UPDATE typing_tests SET finished=true WHERE id=$1',
-    [typingTestId])
+function closeCompetition(competitionId) {
+  db.query('UPDATE competitions SET finished=true WHERE id=$1',
+    [competitionId])
     .catch(err => {
       console.log('Warning: failed to update competition status finished to true.\n' +
-        'typing_tests id: ' + typingTestId + '\n' + err.message + '\n');
+        'typing_tests id: ' + competitionId + '\n' + err.message + '\n');
     });
   // Remove the competition object from the store array
-  const deletePos = competitions.findIndex(competition => competition.id === typingTestId);
+  const deletePos = competitions.findIndex(competition => competition.id === competitionId);
   competitions.splice(deletePos, 1);
   broadcastCompetitions();
 }

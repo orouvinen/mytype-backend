@@ -12,7 +12,7 @@ var http    = require('http');
 var socketIO = require('socket.io');
 
 import * as auth from './api/auth';
-import * as typingTest from './api/typingtest';
+import * as competition from './api/competition';
 import * as user from './api/user';
 import { isEmpty } from './util';
 import { newClient } from './competition-store';
@@ -65,8 +65,7 @@ app.post('/api/users', jsonParser, auth.createUser);
 app.get('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.getUser);
 app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.deleteUser);
 
-app.post('/api/typingtests', jwt({ secret: auth.secret }), tokenChecker, jsonParser, typingTest.createTypingTest);
-
+app.post('/api/competitions', jwt({ secret: auth.secret }), tokenChecker, jsonParser, competition.createCompetition);
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), jsonParser, user.saveResult);
 
