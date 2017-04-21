@@ -13,7 +13,7 @@ export function getCompetition(req, res) {
         return res.status(404).json({ error: 'Competition not found' });
 
       competition = result.rows[0];
-      db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id]);
+      return db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id]);
     })
     .then(result => {
       competition.results = result.rows;
