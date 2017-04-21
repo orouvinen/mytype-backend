@@ -17,10 +17,14 @@ $ npm install
 
 ### Creating a database
 Assuming PostgreSQL in installed, database installation requires the following steps:
+**(Warning! The SQL script will re-create all existing tables, so be sure to back up
+any data before running the script.)**
 ```
 $ createdb mytype
 $ psql mytype -f db/create-mytype-db.sql
 ``` 
+
+
 
 ### Environment configuration
 Environment variables used for configuration must be put to file `.env`. Be sure to give
