@@ -7,19 +7,21 @@ export function getCompetition(req, res) {
   let competition = {};
   let results = [];
 
-  db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id])
-  .then(result => {
-    results = result.rows;
-    return db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id]);
-  })
-  .then(result => {
-    competition = result.rows[0];
-    competition.results = results;
-    res.json(competition);
-  })
-  .catch(err => {
-    res.status(500).json({ error: err.message });
-  });
+  db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id])
+    .then(result => {
+      if (result.rows.length === 0)
+        return res.status(404).json({ error: 'Competition not found' });
+
+      competition = result.rows[0];
+      db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id]);
+    })
+    .then(result => {
+      competition.results = result.rows;
+      res.json(competition);
+    })
+    .catch(err => {
+      res.status(500).json({ error: err.message });
+    });
 }
 
 // Creates a new typing test.
@@ -35,14 +37,14 @@ export function createCompetition(req, res) {
         return res.status(501).end();
       else {
         const competitionId = result.rows[0].id;
-          // Add to competition store
-          addCompetition({
-            id: competitionId,
-            createdAt: result.rows[0].created_at,
-            language,
-            finished: false,
-            createdBy: req.user.name,
-          });
+        // Add to competition store
+        addCompetition({
+          id: competitionId,
+          createdAt: result.rows[0].created_at,
+          language,
+          finished: false,
+          createdBy: req.user.name,
+        });
         res.set('Location', '/api/competitions/' + competitionId);
         res.status(201).end();
       }
@@ -92,11 +94,11 @@ function loadCompetitions(query) {
   return new Promise((resolve, reject) => {
     db.query('SELECT id, language, created_at, finished FROM competitions ' +
       statusFilter + limitClause + offsetClause)
-    .then(result => {
-      resolve(result.rows);
-    })
-    .catch(err => {
-      reject(err);
-    });
+      .then(result => {
+        resolve(result.rows);
+      })
+      .catch(err => {
+        reject(err);
+      });
   });
 }
