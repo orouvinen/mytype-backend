@@ -7,7 +7,7 @@ export function getCompetition(req, res) {
   let competition = {};
   let results = [];
 
-  db.query('SELECT usr as userId, wpm FROM results WHERE typing_test=$1 ORDER BY wpm DESC', [req.params.id])
+  db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id])
   .then(result => {
     results = result.rows;
     return db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id]);
