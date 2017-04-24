@@ -8,6 +8,7 @@ import { db, io } from './main';
 export const competitions = []; // Competition store (houses typing test objects) 
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
+const competitionDurationHours = 24;
 
 // Send list of competitions to all connected sockets
 function broadcastCompetitions() {
@@ -15,12 +16,13 @@ function broadcastCompetitions() {
 }
 
 // Adds typing test object to the competition store
-export const addCompetition = typingTest => {
-  competitions.push(typingTest);
+export const addCompetition = competition => {
+  competition.duration = competitionDurationHours;
+  competitions.push(competition);
 
   broadcastCompetitions();
   // Keep competition open for 24 hours
-  setTimeout(closeCompetition, 24 * 60 * 60 * 1000, typingTest.id);
+  setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
 };
 
 
@@ -55,6 +57,7 @@ export function getRunningCompetitions() {
       id: comp.id,
       language: comp.language,
       created_at: comp.createdAt,
+      duration,
       finished: false
     };
   });
