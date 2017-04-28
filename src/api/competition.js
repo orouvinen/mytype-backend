@@ -28,7 +28,7 @@ export function getCompetition(req, res) {
 // If the typing test is for a competition, create a competition
 // in the competition store as well.
 export function createCompetition(req, res) {
-  const { language, finished, competition } = req.body;
+  const { language, finished, content, competition } = req.body;
 
   db.query('INSERT INTO competitions(language, created_at) ' +
     'VALUES ($1, CURRENT_TIMESTAMP) RETURNING id, language, created_at', [language])
@@ -43,6 +43,7 @@ export function createCompetition(req, res) {
           createdAt: result.rows[0].created_at,
           language,
           finished: false,
+          content,
           createdBy: req.user.name,
         });
         res.set('Location', '/api/competitions/' + competitionId);

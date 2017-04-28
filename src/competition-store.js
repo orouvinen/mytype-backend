@@ -58,6 +58,7 @@ export function getRunningCompetitions() {
       language: comp.language,
       created_at: comp.createdAt,
       duration,
+      content,
       finished: false
     };
   });
