@@ -16,7 +16,7 @@ ALTER TABLE users ADD UNIQUE(email);
 CREATE TABLE competitions(
   id SERIAL,
   created_at TIMESTAMPTZ,
-  finished BOOLEAN,
+  finished BOOLEAN DEFAULT FALSE,
   content TEXT,
   language CHAR(3)
 );
