@@ -26,7 +26,7 @@ export function getCompetition(req, res) {
 
 // Creates a new competition.
 export function createCompetition(req, res) {
-  const { language, finished, content, competition } = req.body;
+  const { language, content } = req.body;
 
   db.query('INSERT INTO competitions(language, created_at) ' +
     'VALUES ($1, CURRENT_TIMESTAMP) RETURNING id, language, created_at', [language])
