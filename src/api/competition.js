@@ -24,9 +24,7 @@ export function getCompetition(req, res) {
     });
 }
 
-// Creates a new typing test.
-// If the typing test is for a competition, create a competition
-// in the competition store as well.
+// Creates a new competition.
 export function createCompetition(req, res) {
   const { language, finished, content, competition } = req.body;
 
