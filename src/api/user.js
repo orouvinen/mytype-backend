@@ -1,4 +1,5 @@
 import { db } from '../main';
+import { isEmpty } from '../util';
 /*
  * /api/users/
  */
@@ -49,13 +50,30 @@ export function getUserResults(req, res) {
       res.status(200).json({ "results": results });
     })
     .catch(err => {
-      res.status(501).end();
+      res.status(500).end();
     });
 }
 
 
 export function saveResult(req, res) {
+  if (isEmpty(req.body))
+    return res.status(400).json({ error: "Missing request body" });
 
+  const { user, competition, startTime, endTime, wpm, acc } = req.body;
+  /*
+   * Javascript timestamps are milliseconds since epoch, but PostgreSQL
+   * timestamps are seconds since epoch.
+   */
+  db.query('INSERT INTO results VALUES ($1, $2, to_timestamp($3), to_timestamp($4), $5, $6)' +
+  ' RETURNING start_time',
+    [user, competition, startTime / 1000.0, endTime / 1000.0, wpm, acc])
+    .then(result => {
+      res.set('Location', `/api/users/${user}/results/${startTime}`);
+      res.status(201).end();
+    })
+    .catch(err => {
+      res.status(500).json({ error: err.message });
+    }); 
 }
 
 
