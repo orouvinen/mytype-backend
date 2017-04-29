@@ -48,7 +48,7 @@ const dbConfig = {
 export const db = new pg.Pool(dbConfig);
 
 // Frontend build and static assets from under public/
-app.use(express.static('public'));
+app.use(express.static(__dirname + '/public'));
 
 // JSON parser needed for API requests
 var jsonParser = bodyParser.json();
