@@ -32,7 +32,7 @@ export function createCompetition(req, res) {
     'VALUES ($1, CURRENT_TIMESTAMP) RETURNING id, language, created_at', [language])
     .then(result => {
       if (result.rows.length !== 1)
-        return res.status(501).end();
+        return res.status(500).end();
       else {
         const competitionId = result.rows[0].id;
         // Add to competition store
