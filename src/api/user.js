@@ -83,9 +83,9 @@ export function saveResult(req, res) {
  * These typically load an array of objects to be further transformed or
  * joined to another object by the main API worker.
  */
-function loadUserObject(userId) {
+export function loadUserObject(userId) {
   return new Promise((resolve, reject) => {
-    db.query('SELECT id, name FROM users WHERE id=$1', [id])
+    db.query('SELECT id, name FROM users WHERE id=$1', [userId])
       .then(result => {
         if (result.rows.length === 0)
           reject(new Error("User not found"));

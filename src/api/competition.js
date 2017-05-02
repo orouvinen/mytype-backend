@@ -2,8 +2,11 @@ import { db } from '../main';
 import { addCompetition, getRunningCompetitions } from '../competition-store';
 import { loadUserObject } from './user';
 
+// Loads a competition entry.
+// In addition to the normal competition attributes,
+// all competition results stored so far will be returned within the object in an array with
+// the key 'results'.
 export function getCompetition(req, res) {
-  // First load all competition results
   let competition = {};
   let results = [];
 
@@ -13,40 +16,16 @@ export function getCompetition(req, res) {
         return res.status(404).json({ error: 'Competition not found' });
 
       competition = result.rows[0];
-      return db.query('SELECT usr as userId, wpm FROM results WHERE competition=$1 ORDER BY wpm DESC', [req.params.id]);
+      return loadCompetitionResults(competition.id);
     })
     .then(result => {
-      competition.results = result.rows;
+      competition.results = result;
       res.json(competition);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
     });
 }
-
-export function getCompetitionResults(req, res) {
-  let tasks = [];
-  let rows = [];
-  
-  db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1',
-    [req.body.competition])
-    .then(result => {
-      result.rows.forEach(row => {
-        rows.push(row); 
-        tasks.push(loadUserObject(row.usr));
-      }); 
-      return Promise.all(loadUserObjects);
-    })
-    .then(userObjects => {
-      userObjects.forEach((usr, i) => {
-        rows[i].user = usr; 
-      });
-    })
-    .catch(err => {
-      res.status(500).json({ error: err.message });
-    });
-}
-
 
 // Creates a new competition.
 export function createCompetition(req, res) {
@@ -123,5 +102,40 @@ function loadCompetitions(query) {
       .catch(err => {
         reject(err);
       });
+  });
+}
+
+/*
+ * Loads all results for a competition.
+ * User objects are constructed withing the result objects, replacing the
+ * plain user id's in the original flat result objects.
+ * 
+ * Returns a promise that resolves with an array of result objects
+ * or rejects with an error object.
+ */
+function loadCompetitionResults(competitionId) {
+  let userObjectPromises = [];
+  let rows = [];
+
+  return new Promise((resolve, reject) => {
+    db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1',
+    [competitionId])
+    .then(result => {
+      result.rows.forEach(row => {
+        rows.push(row);
+        userObjectPromises.push(loadUserObject(row.usr));
+      });
+      return Promise.all(userObjectPromises);
+    })
+    .then(userObjects => {
+      userObjects.forEach((user, i) => {
+        rows[i].user = user;
+        delete(rows[i].usr); // Don't keep the user id hanging around for nothing
+      });
+      resolve(rows);
+    })
+    .catch(err => {
+      reject(err);
+    });
   });
 }
