@@ -1,6 +1,6 @@
 import { db } from '../main';
 import { addCompetition, getRunningCompetitions } from '../competition-store';
-
+import { loadUserObject } from './user';
 
 export function getCompetition(req, res) {
   // First load all competition results
@@ -23,6 +23,30 @@ export function getCompetition(req, res) {
       res.status(500).json({ error: err.message });
     });
 }
+
+export function getCompetitionResults(req, res) {
+  let tasks = [];
+  let rows = [];
+  
+  db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1',
+    [req.body.competition])
+    .then(result => {
+      result.rows.forEach(row => {
+        rows.push(row); 
+        tasks.push(loadUserObject(row.usr));
+      }); 
+      return Promise.all(loadUserObjects);
+    })
+    .then(userObjects => {
+      userObjects.forEach((usr, i) => {
+        rows[i].user = usr; 
+      });
+    })
+    .catch(err => {
+      res.status(500).json({ error: err.message });
+    });
+}
+
 
 // Creates a new competition.
 export function createCompetition(req, res) {
