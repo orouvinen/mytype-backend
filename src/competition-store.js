@@ -16,7 +16,7 @@ function broadcastCompetitions() {
 }
 
 // Adds typing test object to the competition store
-export const addCompetition = competition => {
+export function addCompetition(competition) {
   competition.duration = competitionDurationHours;
   competitions.push(competition);
 
