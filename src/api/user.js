@@ -83,7 +83,7 @@ export function saveResult(req, res) {
  * These typically load an array of objects to be further transformed or
  * joined to another object by the main API worker.
  */
-function loadUserResults(req, res) {
+function loadUserResults(userId) {
   return new Promise((resolve, reject) => {
     db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
       [userId])
