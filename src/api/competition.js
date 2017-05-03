@@ -118,7 +118,8 @@ function loadCompetitionResults(competitionId) {
   let rows = [];
 
   return new Promise((resolve, reject) => {
-    db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1',
+    db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1' +
+             ' ORDER BY wpm DESC, end_time ASC',
     [competitionId])
     .then(result => {
       result.rows.forEach(row => {
