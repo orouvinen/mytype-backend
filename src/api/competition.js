@@ -49,7 +49,6 @@ export function createCompetition(req, res) {
           language,
           finished: false,
           content,
-          createdBy: req.user.name,
         });
         res.set('Location', '/api/competitions/' + competitionId);
         res.status(201).end();
