@@ -3,12 +3,14 @@ import { addCompetition, getRunningCompetitions } from '../competition-store';
 import { loadUserObject } from './user';
 
 // Loads a competition entry.
-// In addition to the normal competition attributes,
-// all competition results stored so far will be returned within the object in an array with
-// the key 'results'.
+// If there's a query parameter "loadResults" with a value of "true", then
+// in addition to the normal competition attributes, all competition results
+// stored so far will be returned within the object in an array with the key
+// 'results'.
 export function getCompetition(req, res) {
   let competition = {};
   let results = [];
+  const loadResults = req.query.hasOwnProperty('loadResults') && req.query.loadResults.toLowerCase() === "true";
 
   db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id])
     .then(result => {
@@ -16,7 +18,9 @@ export function getCompetition(req, res) {
         return res.status(404).json({ error: 'Competition not found' });
 
       competition = result.rows[0];
-      return loadCompetitionResults(competition.id);
+      if (loadResults)
+        return loadCompetitionResults(competition.id);
+      return Promise.resolve([]);
     })
     .then(result => {
       competition.results = result;
