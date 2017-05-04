@@ -63,7 +63,9 @@ export function createCompetition(req, res) {
 export function getCompetitions(req, res) {
   loadCompetitions(req.query)
     .then(rows => {
-      res.status(200).json({ competitions: rows });
+      const competitionsById = {};
+      rows.forEach(c => competitionsById[c.id] = c);
+      res.status(200).json({ competitions: competitionsById });
     })
     .catch(err => {
       res.status(500).json({ error: err.message });

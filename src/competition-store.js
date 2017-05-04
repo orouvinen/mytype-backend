@@ -12,7 +12,9 @@ const competitionDurationHours = 24;
 
 // Send list of competitions to all connected sockets
 function broadcastCompetitions() {
-  io.sockets.emit('competitionListUpdate', competitions);
+  const competitionsById = {};
+  competitions.forEach(c => competitionsById[c.id] = c);
+  io.sockets.emit('competitionListUpdate', competitionsById);
 }
 
 // Adds typing test object to the competition store
