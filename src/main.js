@@ -16,7 +16,7 @@ import * as competition from './api/competition';
 import * as user from './api/user';
 import { isEmpty } from './util';
 import { newClient } from './competition-store';
-
+import snakeToCamel from './util';
 
 var app = express();
 var server = http.createServer(app);

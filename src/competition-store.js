@@ -59,8 +59,7 @@ export function getRunningCompetitions() {
       id: comp.id,
       language: comp.language,
       created_at: comp.createdAt,
-      duration,
-      content,
+      duration: comp.duration,
       finished: false
     };
   });
