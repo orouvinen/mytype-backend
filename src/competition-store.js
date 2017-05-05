@@ -25,7 +25,7 @@ export function addCompetition(competition) {
   broadcastCompetitions();
   // Keep competition open for 24 hours
   setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
-};
+}
 
 
 // closeCompetition():

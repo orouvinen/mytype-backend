@@ -67,6 +67,7 @@ app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonPar
 
 app.post('/api/competitions', jwt({ secret: auth.secret }), tokenChecker, jsonParser, competition.createCompetition);
 app.get('/api/competitions', jsonParser, competition.getCompetitions);
+app.get('/api/competitions/:id/results', jsonParser, competition.getCompetitionResults);
 app.get('/api/competitions/:id', jsonParser, competition.getCompetition);
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.saveResult);

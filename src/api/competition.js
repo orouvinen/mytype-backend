@@ -73,6 +73,13 @@ export function getCompetitions(req, res) {
 }
 
 
+export function getCompetitionResults(req, res) {
+  loadCompetitionResults(req.params.id)
+    .then(resultRows => res.status(200).json({ results: resultRows }))
+    .catch(err => res.status(500).json({ error: err.message }));
+}
+
+
 /*
  * Loads competition records.
  * args: query - query parameters object
