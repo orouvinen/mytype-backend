@@ -10,13 +10,14 @@ var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 var http    = require('http');
 var socketIO = require('socket.io');
+var mung    = require('express-mung');
 
 import * as auth from './api/auth';
 import * as competition from './api/competition';
 import * as user from './api/user';
 import { isEmpty } from './util';
 import { newClient } from './competition-store';
-import snakeToCamel from './util';
+import { snakeToCamel } from './util';
 
 var app = express();
 var server = http.createServer(app);
@@ -49,6 +50,10 @@ export const db = new pg.Pool(dbConfig);
 
 // Frontend build and static assets from under public/
 app.use(express.static(__dirname + '/public'));
+app.use(mung.json((body, req, res) => {
+  body = snakeToCamel(body);
+  return body;
+}));
 
 // JSON parser needed for API requests
 var jsonParser = bodyParser.json();
