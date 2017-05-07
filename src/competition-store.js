@@ -55,12 +55,9 @@ export function newClient(clientSocket) {
 
 export function getRunningCompetitions() {
   return competitions.map(comp => {
+    const { id, language, createdAt, duration, finished, content } = comp;
     return {
-      id: comp.id,
-      language: comp.language,
-      created_at: comp.createdAt,
-      duration: comp.duration,
-      finished: false
+      id, language, createdAt, duration, finished, content,
     };
   });
 }
