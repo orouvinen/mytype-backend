@@ -18,7 +18,8 @@ CREATE TABLE competitions(
   created_at TIMESTAMPTZ,
   finished BOOLEAN DEFAULT FALSE,
   content TEXT,
-  language CHAR(3)
+  language CHAR(3),
+  duration INTEGER DEFAULT 24
 );
 ALTER TABLE competitions ADD PRIMARY KEY(id);
 
