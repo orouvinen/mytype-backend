@@ -12,7 +12,7 @@ export function getCompetition(req, res) {
   let results = [];
   const loadResults = req.query.hasOwnProperty('loadResults') && req.query.loadResults.toLowerCase() === "true";
 
-  db.query('SELECT id, created_at, language FROM competitions WHERE id=$1', [req.params.id])
+  db.query('SELECT id, created_at, duration, language FROM competitions WHERE id=$1', [req.params.id])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(404).json({ error: 'Competition not found' });
