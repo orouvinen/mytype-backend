@@ -1,5 +1,5 @@
 import { db } from '../main';
-import { addCompetition, getRunningCompetitions } from '../competition-store';
+import { addCompetition, getRunningCompetitions, getCompetitionContent } from '../competition-store';
 import { loadUserObject } from './user';
 
 // Loads a competition entry.
@@ -24,6 +24,10 @@ export function getCompetition(req, res) {
     })
     .then(result => {
       competition.results = result;
+      
+      if (!competition.finished)
+        competition.content = getCompetitionContent(competition.id);
+
       res.json(competition);
     })
     .catch(err => {

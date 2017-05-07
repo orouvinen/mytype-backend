@@ -27,6 +27,11 @@ export function addCompetition(competition) {
   setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
 }
 
+export function getCompetitionContent(competitionId)
+{
+  const competition = competitions.find(c => c.id === competitionId);
+  return competition.content;
+}
 
 // closeCompetition():
 //  Set the finished flag for the typing test in the DB and remove
