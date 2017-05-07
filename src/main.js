@@ -51,8 +51,7 @@ export const db = new pg.Pool(dbConfig);
 // Frontend build and static assets from under public/
 app.use(express.static(__dirname + '/public'));
 app.use(mung.json((body, req, res) => {
-  body = snakeToCamel(body);
-  return body;
+  return snakeToCamel(body);
 }));
 
 // JSON parser needed for API requests
