@@ -1,5 +1,7 @@
 import { db } from '../main';
 import { isEmpty } from '../util';
+import { addResult } from '../competition-store';
+
 /*
  * /api/users/
  */
@@ -60,6 +62,8 @@ export function saveResult(req, res) {
     return res.status(400).json({ error: "Missing request body" });
 
   const { user, competition, startTime, endTime, wpm, acc } = req.body;
+  addResult(competition, req.body);
+
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.

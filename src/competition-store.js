@@ -19,11 +19,20 @@ function broadcastCompetitions() {
 export function addCompetition(competition) {
   competition.duration = competitionDurationHours;
   competitions[competition.id] = competition;
+  competitions[competition.id].results = [];
 
   broadcastCompetitions();
   // Keep competition open for 24 hours
   setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
 }
+
+
+// Adds a result to competition. Result is expected to be an
+// object containing necessary fields to describe the result.
+export function addResult(competitionId, result) {
+  competitions[competitionId].results.push(result);
+}
+
 
 export function getCompetitionContent(competitionId)
 {
