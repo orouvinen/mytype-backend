@@ -5,22 +5,20 @@
  */
 import { db, io } from './main';
 
-export const competitions = []; // Competition store (houses typing test objects) 
+export const competitions = {}; // Competition store, map from id to competition 
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
 const competitionDurationHours = 24;
 
 // Send list of competitions to all connected sockets
 function broadcastCompetitions() {
-  const competitionsById = {};
-  competitions.forEach(c => competitionsById[c.id] = c);
-  io.sockets.emit('competitionListUpdate', competitionsById);
+  io.sockets.emit('competitionListUpdate', competitions);
 }
 
 // Adds typing test object to the competition store
 export function addCompetition(competition) {
   competition.duration = competitionDurationHours;
-  competitions.push(competition);
+  competitions[competition.id] = competition;
 
   broadcastCompetitions();
   // Keep competition open for 24 hours
@@ -29,8 +27,7 @@ export function addCompetition(competition) {
 
 export function getCompetitionContent(competitionId)
 {
-  const competition = competitions.find(c => c.id === competitionId);
-  return competition.content;
+  return competitions[competitionId].content;
 }
 
 // closeCompetition():
@@ -43,9 +40,8 @@ function closeCompetition(competitionId) {
       console.log('Warning: failed to update competition status finished to true.\n' +
         'typing_tests id: ' + competitionId + '\n' + err.message + '\n');
     });
-  // Remove the competition object from the store array
-  const deletePos = competitions.findIndex(competition => competition.id === competitionId);
-  competitions.splice(deletePos, 1);
+  // Remove from store and notify send updated store to clients
+  delete(competitions[competitionId]);
   broadcastCompetitions();
 }
 
@@ -59,9 +55,9 @@ export function newClient(clientSocket) {
 }
 
 export function getRunningCompetitions() {
-  return competitions.map(comp => {
-    const { id, language, createdAt, duration, finished, content } = comp;
-    return {
+  return Object.keys(competitions).map(key => {
+    const { id, language, createdAt, duration, finished, content } = competitions[key];
+    return { 
       id, language, createdAt, duration, finished, content,
     };
   });
