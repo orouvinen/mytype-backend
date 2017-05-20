@@ -62,8 +62,6 @@ export function saveResult(req, res) {
     return res.status(400).json({ error: "Missing request body" });
 
   const { user, competition, startTime, endTime, wpm, acc } = req.body;
-  addResult(competition, req.body);
-
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.
@@ -74,6 +72,11 @@ export function saveResult(req, res) {
     .then(result => {
       res.set('Location', `/api/users/${user}/results/${startTime}`);
       res.status(201).end();
+      return loadUserObject(user);
+    })
+    .then(user => {
+      req.body.user = user;
+      addResult(competition, req.body);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
