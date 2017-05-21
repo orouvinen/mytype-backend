@@ -17,7 +17,10 @@ function broadcastCompetitions() {
 
 // Send list of competition result to all connected clients
 function broadcastCompetitionResults(competitionId) {
-  io.sockets.emit('competitionResultsUpdate', competitions[competitionId].results);
+  io.sockets.emit('competitionResultsUpdate', {
+    competition: competitionId,
+    results: competitions[competitionId].results,
+  });
 }
 
 // Adds typing test object to the competition store
