@@ -15,6 +15,11 @@ function broadcastCompetitions() {
   io.sockets.emit('competitionListUpdate', competitions);
 }
 
+// Send list of competition result to all connected clients
+function broadcastCompetitionResults(competitionId) {
+  io.sockets.emit('competitionResultsUpdate', competitions[id].results);
+}
+
 // Adds typing test object to the competition store
 export function addCompetition(competition) {
   competition.duration = competitionDurationHours;
@@ -31,6 +36,7 @@ export function addCompetition(competition) {
 // object containing necessary fields to describe the result.
 export function addResult(competitionId, result) {
   competitions[competitionId].results.push(result);
+  broadcastCompetitionResults(competitionId);
 }
 
 
