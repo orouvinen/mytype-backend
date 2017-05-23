@@ -8,7 +8,7 @@ CREATE TABLE users(
   email varchar(64),
   password CHAR(128),
   salt CHAR(20),
-  admin BOOLEAN
+  admin BOOLEAN DEFAULT FALSE
 );
 ALTER TABLE users ADD PRIMARY KEY(id);
 ALTER TABLE users ADD UNIQUE(email);
