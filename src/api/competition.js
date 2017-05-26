@@ -39,8 +39,8 @@ export function getCompetition(req, res) {
 export function createCompetition(req, res) {
   const { language, content } = req.body;
 
-  db.query('INSERT INTO competitions(language, created_at) ' +
-    'VALUES ($1, CURRENT_TIMESTAMP) RETURNING id, language, created_at', [language])
+  db.query('INSERT INTO competitions(language, created_at, content) ' +
+    'VALUES ($1, CURRENT_TIMESTAMP, $2) RETURNING id, language, created_at', [language, content])
     .then(result => {
       if (result.rows.length !== 1)
         return res.status(500).end();
@@ -129,7 +129,7 @@ function loadCompetitions(query) {
  * Returns a promise that resolves with an array of result objects
  * or rejects with an error object.
  */
-function loadCompetitionResults(competitionId) {
+export function loadCompetitionResults(competitionId) {
   let userObjectPromises = [];
   let rows = [];
 

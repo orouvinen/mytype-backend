@@ -16,7 +16,7 @@ import * as auth from './api/auth';
 import * as competition from './api/competition';
 import * as user from './api/user';
 import { isEmpty } from './util';
-import { newClient } from './competition-store';
+import { newClient, restoreCompetitions } from './competition-store';
 import { snakeToCamel } from './util';
 
 var app = express();
@@ -63,6 +63,7 @@ const tokenChecker = (err, req, res, next) => {
     res.status(401).json({ error: "Invalid auth token" });
 };
 
+
 // Routes
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 app.post('/api/users', jsonParser, auth.createUser);
@@ -84,6 +85,7 @@ app.get('*', (req, res) => {
 
 // Grab incoming websocket connections
 io.on('connection', newClient);
+restoreCompetitions();
 
 server.listen(serverOptions.port, () => {
   console.log('listening on port %s', serverOptions.port);
