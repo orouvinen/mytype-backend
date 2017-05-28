@@ -26,7 +26,7 @@ CREATE TABLE competitions(
   finished BOOLEAN DEFAULT FALSE,
   content TEXT,
   language CHAR(3),
-  duration INTEGER DEFAULT 24,
+  duration INTEGER DEFAULT 24
 );
 ALTER TABLE competitions ADD PRIMARY KEY(id);
 
