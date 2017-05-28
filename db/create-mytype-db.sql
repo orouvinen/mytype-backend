@@ -27,8 +27,6 @@ CREATE TABLE competitions(
   content TEXT,
   language CHAR(3),
   duration INTEGER DEFAULT 24,
-  avg_wpm REAL,
-  avg_acc REAL
 );
 ALTER TABLE competitions ADD PRIMARY KEY(id);
 
@@ -37,14 +35,14 @@ CREATE TABLE results (
   competition INTEGER,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
-  wpm REAL DEFAULT 0.0,
-  acc REAL DEFAULT 0.0
+  wpm REAL,
+  acc REAL
 );
 ALTER TABLE results ADD PRIMARY KEY(usr, start_time);
 ALTER TABLE results ADD FOREIGN KEY(competition) REFERENCES competitions(id) ON DELETE CASCADE;
 ALTER TABLE results ADD FOREIGN KEY(usr) REFERENCES users(id) ON DELETE CASCADE;
 
 CREATE TABLE stats(
-  avg_wpm REAL DEFAULT 0.0,
+  avg_wpm REAL DEFAULT 0.0, -- avg wpm for all typed typing tests
   avg_acc REAL DEFAULT 0.0
 );
