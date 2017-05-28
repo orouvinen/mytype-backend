@@ -75,7 +75,7 @@ export function saveResult(req, res) {
       return loadUserObject(user);
     })
     .then(user => {
-      req.body.user = user;
+      req.body.user = user; // Replace user id with user object
       addResult(competition, req.body);
     })
     .catch(err => {
