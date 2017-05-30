@@ -77,6 +77,24 @@ export function saveResult(req, res) {
     .then(user => {
       req.body.user = user; // Replace user id with user object
       addResult(competition, req.body);
+      
+      /* Next up in the chain, update user statistics */
+      return db.query('SELECT avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1', [user.id]);
+    })
+    .then(result => {
+      let numTypingTests = result.rows[0].num_typing_tests;
+      let newAvgWpm, newAvgAcc;
+
+      if (numTypingTests > 0) {
+        newAvgWpm = (result.rows[0].avg_wpm + wpm) / 2.0;
+        newAvgAcc = (result.rows[0].avg_acc + acc) / 2.0;
+      } else {
+        /* This was the first typing test ever for the user */
+        newAvgWpm = wpm;
+        newAvgAcc = acc;
+      }
+      return db.query('UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
+        [newAvgWpm, newAvgAcc, numTypingTests + 1, req.body.user.id]);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
@@ -92,7 +110,8 @@ export function saveResult(req, res) {
  */
 export function loadUserObject(userId) {
   return new Promise((resolve, reject) => {
-    db.query('SELECT id, name FROM users WHERE id=$1', [userId])
+    db.query('SELECT id, name, avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1',
+    [userId])
       .then(result => {
         if (result.rows.length === 0)
           reject(new Error("User not found"));

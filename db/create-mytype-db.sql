@@ -13,8 +13,8 @@ CREATE TABLE users(
   registered TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
   -- aggregate values updated on fly
-  avg_wpm REAL DEFAULT 0.0,
-  avg_acc REAL DEFAULT 0.0,
+  avg_wpm DOUBLE PRECISION DEFAULT 0.0,
+  avg_acc DOUBLE PRECISION DEFAULT 0.0,
   num_typing_tests INTEGER DEFAULT 0
 );
 ALTER TABLE users ADD PRIMARY KEY(id);
@@ -35,14 +35,14 @@ CREATE TABLE results (
   competition INTEGER,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
-  wpm REAL,
-  acc REAL
+  wpm DOUBLE PRECISION,
+  acc DOUBLE PRECISION
 );
 ALTER TABLE results ADD PRIMARY KEY(usr, start_time);
 ALTER TABLE results ADD FOREIGN KEY(competition) REFERENCES competitions(id) ON DELETE CASCADE;
 ALTER TABLE results ADD FOREIGN KEY(usr) REFERENCES users(id) ON DELETE CASCADE;
 
 CREATE TABLE stats(
-  avg_wpm REAL DEFAULT 0.0, -- avg wpm for all typed typing tests
-  avg_acc REAL DEFAULT 0.0
+  avg_wpm DOUBLE PRECISION DEFAULT 0.0, -- avg wpm for all typed typing tests
+  avg_acc DOUBLE PRECISION DEFAULT 0.0
 );
