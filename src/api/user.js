@@ -75,26 +75,25 @@ export function saveResult(req, res) {
       return loadUserObject(user);
     })
     .then(user => {
-      req.body.user = user; // Replace user id with user object
-      addResult(competition, req.body);
-      
-      /* Next up in the chain, update user statistics */
-      return db.query('SELECT avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1', [user.id]);
-    })
-    .then(result => {
-      let numTypingTests = result.rows[0].num_typing_tests;
+      // Replace a mere user id in the result with a user object
+      const result = req.body;
+      result.user = { id: user.id, name: user.name };
+      addResult(competition, result);
+
+      // Update user stats
+      let numTypingTests = user.num_typing_tests;
       let newAvgWpm, newAvgAcc;
 
       if (numTypingTests > 0) {
-        newAvgWpm = (result.rows[0].avg_wpm + wpm) / 2.0;
-        newAvgAcc = (result.rows[0].avg_acc + acc) / 2.0;
+        newAvgWpm = (user.avg_wpm + wpm) / 2.0;
+        newAvgAcc = (user.avg_acc + acc) / 2.0;
       } else {
-        /* This was the first typing test ever for the user */
+        // This was the first typing test for the user
         newAvgWpm = wpm;
         newAvgAcc = acc;
       }
       return db.query('UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
-        [newAvgWpm, newAvgAcc, numTypingTests + 1, req.body.user.id]);
+        [newAvgWpm, newAvgAcc, numTypingTests + 1, user.id]);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
