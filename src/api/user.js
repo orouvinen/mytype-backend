@@ -61,7 +61,13 @@ export function saveResult(req, res) {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
-  const { user, competition, startTime, endTime, wpm, acc } = req.body;
+  const { user, startTime, endTime, wpm, acc } = req.body;
+
+  // If no competitions was specified, A NULL value would be inserted even without
+  // this check, but it's here for the sake of explicitness
+  if (req.body.competition === undefined)
+    req.body.competition = null;
+
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.

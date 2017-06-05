@@ -32,7 +32,7 @@ ALTER TABLE competitions ADD PRIMARY KEY(id);
 
 CREATE TABLE results (
   usr INTEGER,  -- "user" is a reserved word
-  competition INTEGER,
+  competition INTEGER NULL,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
   wpm DOUBLE PRECISION,
