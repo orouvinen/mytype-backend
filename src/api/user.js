@@ -62,12 +62,12 @@ export function saveResult(req, res) {
     return res.status(400).json({ error: "Missing request body" });
 
   const { user, startTime, endTime, wpm, acc } = req.body;
-
+  
   // If no competitions was specified, A NULL value would be inserted even without
   // this check, but it's here for the sake of explicitness
-  if (req.body.competition === undefined)
-    req.body.competition = null;
-
+  let competition = null;
+  if (req.body.competition !== undefined)
+    competition = req.body.competition; 
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.
@@ -84,7 +84,9 @@ export function saveResult(req, res) {
       // Replace a mere user id in the result with a user object
       const result = req.body;
       result.user = { id: user.id, name: user.name };
-      addResult(competition, result);
+
+      if (competition)
+        addResult(competition, result);
 
       // Update user stats
       let numTypingTests = user.num_typing_tests;
