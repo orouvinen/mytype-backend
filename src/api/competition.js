@@ -128,15 +128,26 @@ function loadCompetitions(query) {
  * 
  * Returns a promise that resolves with an array of result objects
  * or rejects with an error object.
+ * 
+ * If onlyTopResults is true (the default), loads only best result for each user.
+ * Otherwise gets all the results for each player.
  */
-export function loadCompetitionResults(competitionId) {
+export function loadCompetitionResults(competitionId, onlyTopResults = true) {
   let userObjectPromises = [];
   let rows = [];
 
+  let query = "";
+  if (onlyTopResults)
+    query = 'SELECT r.usr, r.start_time, r.end_time, r.wpm, r.acc FROM results r' +
+            ' INNER JOIN ' +
+            ' (SELECT MAX(wpm) wpm, usr FROM results WHERE competition=$1 GROUP BY usr) max' +
+            ' ON r.usr = max.usr AND r.wpm = max.wpm ORDER BY max.wpm DESC, r.end_time ASC';
+  else
+    query = 'SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1' +
+            ' ORDER BY wpm DESC, end_time ASC';
+
   return new Promise((resolve, reject) => {
-    db.query('SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1' +
-             ' ORDER BY wpm DESC, end_time ASC',
-    [competitionId])
+    db.query(query, [competitionId])
     .then(result => {
       result.rows.forEach(row => {
         rows.push(row);
