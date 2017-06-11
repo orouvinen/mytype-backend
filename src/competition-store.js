@@ -31,7 +31,7 @@ function broadcastCompetitionResults(competitionId) {
 export function addCompetition(competition) {
   competition.duration = competitionDurationHours;
   competitions[competition.id] = competition;
-  competitions[competition.id].results = [];
+  competitions[competition.id].results = {};
 
   broadcastCompetitions();
   // Keep competition open for 24 hours
@@ -42,8 +42,11 @@ export function addCompetition(competition) {
 // Adds a result to competition. Result is expected to be an
 // object containing necessary fields to describe the result.
 export function addResult(competitionId, result) {
-  competitions[competitionId].results.push(result);
-  broadcastCompetitionResults(competitionId);
+  const userCurrentResult = competitions[competitionId].results[result.user.id];
+  if (!userCurrentResult || result.wpm > userCurrentResult.wpm) {
+    competitions[competitionId].results[result.user.id] = result;
+    broadcastCompetitionResults(competitionId);
+  }
 }
 
 
@@ -78,10 +81,12 @@ export function restoreCompetitions() {
   db.query('SELECT id, created_at, finished, content, language, duration FROM competitions WHERE finished=false')
     .then(result => {
       result.rows.forEach(competition => {
-        const competitionResults = [];
         competitions[competition.id] = competition;
+        competition.results = {};
         loadCompetitionResults(competition.id).then(results => {
-          competitions[competition.id].results = results;
+          results.forEach(result => {
+            addResult(competition.id, result);
+          });
         });
       });
     })
