@@ -11,13 +11,13 @@ import { addResult } from '../competition-store';
  * Return user account data
  */
 export function getUser(req, res) {
-  db.query('SELECT id, name FROM users WHERE id=$1', [req.params.id])
+  db.query('SELECT id, name, num_typing_tests, avg_wpm, avg_acc FROM users WHERE id=$1',
+    [req.params.id])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(404).json({ error: "User not found" });
 
-      const { id, name } = result.rows[0];
-      return res.status(200).json({"user": { id, name }});
+      return res.status(200).json({ "user": result.rows[0] });
     });
 }
 
