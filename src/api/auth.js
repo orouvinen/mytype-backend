@@ -4,6 +4,7 @@
 
 import { db } from '../main';
 import { isEmpty } from '../util';
+import { loadUserObject } from './user';
 
 var jwt = require('jsonwebtoken');
 var crypto = require('crypto');
@@ -78,9 +79,9 @@ export function authenticate(req, res) {
           res.status(401).json({ error: "Invalid password" });
         else {
           const token = createToken(id, name, email, admin);
-          res.status(200).json({
-            "user": { id, name, email, admin },
-            "token": token
+          loadUserObject(id)
+          .then(user => {
+            return res.status(200).json({user, token});
           });
         }
       });
