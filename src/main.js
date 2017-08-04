@@ -67,6 +67,7 @@ const tokenChecker = (err, req, res, next) => {
 // Routes
 app.post('/api/authenticate', jsonParser, auth.authenticate);
 app.post('/api/users', jsonParser, auth.createUser);
+app.get('/api/users', user.getUsers);
 app.get('/api/users/:id', jsonParser, user.getUser);
 app.delete('/api/users/:id', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.deleteUser);
 

@@ -6,6 +6,15 @@ import { addResult } from '../competition-store';
  * /api/users/
  */
 
+export function getUsers(req, res) {
+  db.query('SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users')
+    .then(result => {
+      return res.status(200).json({ "users": result.rows });
+    })
+    .catch(err => {
+      res.status(500).json({ error: err.message });
+    });
+}
 
 /*
  * Return user account data
