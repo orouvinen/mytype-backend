@@ -7,7 +7,24 @@ import { addResult } from '../competition-store';
  */
 
 export function getUsers(req, res) {
-  db.query('SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users')
+  let qry = 'SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users';
+ 
+  let sort = "";
+
+  if (req.query.sort) {
+    // Process possible query parameters
+    sort = {
+      'wpm': `avg_wpm ${req.query.order}, avg_acc ${req.query.order}`,
+      'typing_tests': `num_typing_tests ${req.query.order}`,
+    }[req.query.sort];
+    if (sort === undefined)
+      return res.status(400).json({ error: "Invalid request parameters "});
+  }
+
+  if (req.query.sort)
+    qry += ` ORDER BY ${sort}`;
+
+  db.query(qry)
     .then(result => {
       return res.status(200).json({ "users": result.rows });
     })
