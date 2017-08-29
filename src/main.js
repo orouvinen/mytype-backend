@@ -49,7 +49,7 @@ const dbConfig = {
 export const db = new pg.Pool(dbConfig);
 
 // Frontend build and static assets from under public/
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(path.join(process.env.PWD, '/public')));
 app.use(mung.json((body, req, res) => {
   return snakeToCamel(body);
 }));
@@ -81,7 +81,7 @@ app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), tokenChecker, 
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'public/index.html'));
+  res.sendFile(path.resolve(path.join(process.env.PWD, 'public/index.html')));
 });
 
 // Grab incoming websocket connections
