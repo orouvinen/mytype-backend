@@ -10,3 +10,4 @@ deploy.sh
 app-build.js
 .env
 dev_doc/
+  .vscode/
