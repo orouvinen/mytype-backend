@@ -23,12 +23,14 @@ ALTER TABLE users ADD UNIQUE(email);
 CREATE TABLE competitions(
   id SERIAL,
   created_at TIMESTAMPTZ,
+  created_by INTEGER NULL,
   finished BOOLEAN DEFAULT FALSE,
   content TEXT,
   language CHAR(3),
   duration INTEGER DEFAULT 24
 );
 ALTER TABLE competitions ADD PRIMARY KEY(id);
+ALTER TABLE competitions ADD FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE TABLE results (
   usr INTEGER,  -- "user" is a reserved word

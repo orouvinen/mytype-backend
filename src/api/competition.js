@@ -12,7 +12,7 @@ export function getCompetition(req, res) {
   let results = [];
   const loadResults = req.query.hasOwnProperty('loadResults') && req.query.loadResults.toLowerCase() === "true";
 
-  db.query('SELECT id, created_at, duration, language FROM competitions WHERE id=$1', [req.params.id])
+  db.query('SELECT id, created_at, created_by, duration, language FROM competitions WHERE id=$1', [req.params.id])
     .then(result => {
       if (result.rows.length === 0)
         return res.status(404).json({ error: 'Competition not found' });
@@ -37,10 +37,10 @@ export function getCompetition(req, res) {
 
 // Creates a new competition.
 export function createCompetition(req, res) {
-  const { language, content } = req.body;
+  const { language, content, createdBy } = req.body;
 
-  db.query('INSERT INTO competitions(language, created_at, content) ' +
-    'VALUES ($1, CURRENT_TIMESTAMP, $2) RETURNING id, language, created_at', [language, content])
+  db.query('INSERT INTO competitions(language, created_at, created_by, content) ' +
+    'VALUES ($1, CURRENT_TIMESTAMP, $3, $2) RETURNING id, language, created_at', [language, content, createdBy])
     .then(result => {
       if (result.rows.length !== 1)
         return res.status(500).end();
@@ -50,6 +50,7 @@ export function createCompetition(req, res) {
         addCompetition({
           id: competitionId,
           createdAt: result.rows[0].created_at,
+          createdBy,
           language,
           finished: false,
           content,
@@ -110,7 +111,7 @@ function loadCompetitions(query) {
     offsetClause = ' OFFSET ' + offset;
 
   return new Promise((resolve, reject) => {
-    db.query('SELECT id, language, created_at, finished FROM competitions ' +
+    db.query('SELECT id, language, created_at, created_by, finished FROM competitions ' +
       statusFilter + limitClause + offsetClause)
       .then(result => {
         resolve(result.rows);

@@ -78,7 +78,7 @@ function closeCompetition(competitionId) {
 // It could be fixed, but I'd rather take the time to write this comment than think about
 // timestamps and setTimeouts.
 export function restoreCompetitions() {
-  db.query('SELECT id, created_at, finished, content, language, duration FROM competitions WHERE finished=false')
+  db.query('SELECT id, created_at, created_by, finished, content, language, duration FROM competitions WHERE finished=false')
     .then(result => {
       result.rows.forEach(competition => {
         competitions[competition.id] = competition;
@@ -105,9 +105,9 @@ export function newClient(clientSocket) {
 
 export function getRunningCompetitions() {
   return Object.keys(competitions).map(key => {
-    const { id, language, createdAt, duration, finished, content }  = competitions[key];
+    const { id, language, createdAt, createdBy, duration, finished, content }  = competitions[key];
     return {
-      id, language, createdAt, duration, finished, content,
+      id, language, createdAt, createdBy, duration, finished, content,
     };
   });
 }
