@@ -1,7 +1,14 @@
+DROP TABLE IF EXISTS stats;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS competition_finished_events, competition_top_result_events;
+DROP TABLE IF EXISTS competition_events;
+DROP TABLE IF EXISTS user_events;
+DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS results;
 DROP TABLE IF EXISTS competitions;
 DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS stats;
+DROP TYPE IF EXISTS event_type;
+DROP TYPE IF EXISTS competition_event_type;
 
 CREATE TABLE users(
   id SERIAL,
@@ -48,3 +55,47 @@ CREATE TABLE stats(
   avg_wpm DOUBLE PRECISION DEFAULT 0.0, -- avg wpm for all typed typing tests
   avg_acc DOUBLE PRECISION DEFAULT 0.0
 );
+
+-- Events and notifications ----------------------------------------------------
+CREATE TYPE event_type AS ENUM('competition');
+CREATE TYPE competition_event_type AS ENUM('finished', 'top_result');
+
+-- Properties general to all events
+CREATE TABLE events(
+  id SERIAL,
+  type event_type NULL
+);
+ALTER TABLE events ADD PRIMARY KEY(id);
+
+-- Competition-specific event properties
+CREATE TABLE competition_events(
+  id INTEGER,
+  competition INTEGER,
+  type competition_event_type
+);
+ALTER TABLE competition_events ADD PRIMARY KEY(id);
+ALTER TABLE competition_events ADD FOREIGN KEY(id) REFERENCES events(id) ON DELETE CASCADE;
+
+CREATE TABLE competition_top_result_events(
+  id INTEGER,
+  usr INTEGER,
+  wpm DOUBLE PRECISION,
+  user_ranking INTEGER
+);
+ALTER TABLE competition_top_result_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
+ALTER TABLE competition_top_result_events ADD FOREIGN KEY(usr) REFERENCES users(id);
+
+CREATE TABLE competition_finished_events(
+  id INTEGER
+);
+ALTER TABLE competition_finished_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
+
+
+CREATE TABLE notifications(
+  id SERIAL,
+  usr INTEGER,
+  event INTEGER
+);
+ALTER TABLE notifications ADD PRIMARY KEY(id);
+ALTER TABLE notifications ADD FOREIGN KEY(usr) REFERENCES users(id);
+ALTER TABLE notifications ADD FOREIGN key(event) REFERENCES events(id);
