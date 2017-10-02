@@ -54,19 +54,43 @@ export function getCompetitionContent(competitionId) {
   return competitions[competitionId].content;
 }
 
-// closeCompetition():
-//  Set the finished flag for the typing test in the DB and remove
-//  the typing test object from the competition store
+// Closes a competition:
+//  - set status to finished
+//  - create a competition 'finished' event
+//  - create notification for all participants about competition begin finished
 function closeCompetition(competitionId) {
-  db.query('UPDATE competitions SET finished=true WHERE id=$1',
-    [competitionId])
+  let eventId;
+
+  db.query('SELECT close_competition($1)', [competitionId])
+    .then(result => {
+      eventId = result.rows[0].close_competition;
+      return getParticipants(competitionId);
+    })
+    .then(users => { 
+      // Remove the competition from store and send updated store to clients
+      delete(competitions[competitionId]);
+      broadcastCompetitions();
+
+      // Create notifications about finished competition
+      const notifyTasks = users.map(userId => 
+        db.query('INSERT INTO notifications(usr, event) VALUES($1, $2)',
+          [userId, eventId]));
+
+      return Promise.all(notifyTasks);
+    })
     .catch(err => {
-      console.log('Warning: failed to update competition status finished to true.\n' +
-        'typing_tests id: ' + competitionId + '\n' + err.message + '\n');
+      console.log('Warning: failed to close competition.\n' +
+        'competition id: ' + competitionId + '\n' + err.message + '\n');
     });
-  // Remove from store and notify send updated store to clients
-  delete (competitions[competitionId]);
-  broadcastCompetitions();
+}
+
+// Get competition participants.
+// Returns an array of user ids.
+function getParticipants(competitionId) {
+  return new Promise((resolve, reject) =>
+    db.query('SELECT usr FROM results WHERE competition=$1', [competitionId])
+      .then(result => resolve(result.rows.map(row => row.usr)))
+      .catch(err => reject(err)));
 }
 
 // Helper to restore in-progress competitions from db when starting the server

@@ -1,3 +1,17 @@
+-- closes a competition and creates an event about the competition finishing.
+-- Returns id of the created event.
+CREATE OR REPLACE FUNCTION close_competition(competition_id INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+  event_id INTEGER;
+BEGIN
+  UPDATE competitions SET finished=true WHERE id = competition_id;
+  SELECT create_competition_finished_event(competition_id) INTO event_id;
+  RETURN event_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- Creates a basic competition event record.
 -- Used by the actual competition event procedures to store the common properties
 -- for a competition-specific event.
@@ -37,6 +51,7 @@ DECLARE
   new_event_id INTEGER;
 BEGIN
   SELECT create_competition_event(competition_id, 'finished') INTO new_event_id;
+  INSERT INTO competition_finished_events(id) VALUES(new_event_id);
   RETURN new_event_id;
 END;
 $$ LANGUAGE plpgsql;
