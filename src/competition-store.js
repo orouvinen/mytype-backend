@@ -57,7 +57,7 @@ export function getCompetitionContent(competitionId) {
 // Closes a competition:
 //  - set status to finished
 //  - create a competition 'finished' event
-//  - create notification for all participants about competition begin finished
+//  - create notification for all participants about competition being finished
 function closeCompetition(competitionId) {
   let eventId;
 
