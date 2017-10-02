@@ -5,7 +5,7 @@
 ## Installation
 1. Clone the repo:
 ```
-git clone https://github.com/orouvinen/mytype-backend.git
+$ git clone https://github.com/orouvinen/mytype-backend.git
 ```
 2. Install required packages and their dependencies:
 ```
@@ -17,13 +17,13 @@ $ npm install
 
 ### Creating a database
 Assuming PostgreSQL in installed, database installation requires the following steps:
-**(Warning! The SQL script will re-create all existing tables, so be sure to back up
-any data before running the script.)**
+**(Warning! The SQL script will re-create all existing tables in the mytype database, so be sure to back up any data before running the script.)**
 ```
+# Assuming you are in project root directory:
+$ cd db
 $ createdb mytype
-$ psql mytype -f db/create-mytype-db.sql
+$ sh initdb.sh
 ``` 
-
 
 
 ### Environment configuration

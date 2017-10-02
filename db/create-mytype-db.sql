@@ -2,13 +2,12 @@ DROP TABLE IF EXISTS stats;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS competition_finished_events, competition_top_result_events;
 DROP TABLE IF EXISTS competition_events;
-DROP TABLE IF EXISTS user_events;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS results;
 DROP TABLE IF EXISTS competitions;
 DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS competition_event_type CASCADE;
 DROP TYPE IF EXISTS event_type;
-DROP TYPE IF EXISTS competition_event_type;
 
 CREATE TABLE users(
   id SERIAL,
@@ -75,6 +74,7 @@ CREATE TABLE competition_events(
 );
 ALTER TABLE competition_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_events ADD FOREIGN KEY(id) REFERENCES events(id) ON DELETE CASCADE;
+ALTER TABLE competition_events ADD FOREIGN KEY(competition) REFERENCES competitions(id) ON DELETE CASCADE;
 
 CREATE TABLE competition_top_result_events(
   id INTEGER,
