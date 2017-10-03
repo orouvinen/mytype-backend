@@ -77,7 +77,7 @@ app.get('/api/competitions/:id/results', jsonParser, competition.getCompetitionR
 app.get('/api/competitions/:id', jsonParser, competition.getCompetition);
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.saveResult);
-
+app.get('/api/users/:id/notifications', jwt({ secret: auth.secret }), tokenChecker, user.getNotifications);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {

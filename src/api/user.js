@@ -134,6 +134,17 @@ export function saveResult(req, res) {
     }); 
 }
 
+export function getNotifications(req, res) {
+  // No need to access notifcations of other users than oneself
+  const requestUserId = parseInt(req.params.id, 10);
+  if (req.user.id !== requestUserId)
+    return res.status(401).end();
+    
+  db.query('SELECT id, event FROM notifications WHERE usr=$1', [req.params.id])
+    .then(result => res.status(200).json({ "notifications": result.rows }))
+    .catch(err => res.json(500).json({ error: err.message }));
+}
+
 
 /*******************************************************************************
  *
