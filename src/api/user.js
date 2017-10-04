@@ -139,9 +139,12 @@ export function getNotifications(req, res) {
   const requestUserId = parseInt(req.params.id, 10);
   if (req.user.id !== requestUserId)
     return res.status(401).end();
-    
-  db.query('SELECT id, event FROM notifications WHERE usr=$1', [req.params.id])
-    .then(result => res.status(200).json({ "notifications": result.rows }))
+
+  getUserNotifications(requestUserId)
+    .then(notifications => Promise.all(notifications.map(n => getEvent(n.event))))
+    .then(event => {
+      res.json(event);
+    })
     .catch(err => res.json(500).json({ error: err.message }));
 }
 
@@ -152,6 +155,72 @@ export function getNotifications(req, res) {
  * These typically load an array of objects to be further transformed or
  * joined to another object by the main API worker.
  */
+
+function getEvent(eventId) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT id, type FROM events WHERE id=$1', [eventId])
+      .then(result => result.rows[0])
+      .then(event => getTypedEvent(event))
+      .then(event => resolve(event))
+      .catch(err => reject(err));
+  });
+}
+
+function getTypedEvent(baseEvent) {
+  if (baseEvent.type === 'competition')
+    return getCompetitionEvent(baseEvent);
+  else
+    return new Promise((_, reject) => reject("Invalid event type"));
+}
+
+function getCompetitionEvent(baseEvent) {
+  let event = {};
+
+  return new Promise((resolve, reject) => {
+    db.query('SELECT competition, type FROM competition_events WHERE id=$1',
+      [baseEvent.id])
+      .then(result => {
+        event = Object.assign({}, result.rows[0]);
+
+        let eventTbl, columns;
+        switch(event.type) {
+        case 'top_result':
+          eventTbl = 'competition_top_result_events';
+          columns = 'usr, wpm, user_ranking';
+          break;
+
+        case 'finished':
+          eventTbl = 'competition_finished_events';
+          columns = 'id';
+        }
+
+        return db.query(`SELECT ${columns} FROM ${eventTbl} WHERE id=$1`, [baseEvent.id]);
+      })
+      .then(result => Object.assign(event, result.rows[0]))
+      .then(event => {
+        // For top result events, replace user id with actual user object
+        if (event.type === 'top_result')
+          return loadUserObject(event.usr);
+        else resolve(event);
+      })
+      .then(user => {
+        event.user = user;
+        delete(event.usr);
+        resolve(event);
+      })
+      .catch(err => reject(err));
+  });
+}
+
+
+function getUserNotifications(userId) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT event FROM notifications WHERE usr=$1', [userId])
+      .then(result => resolve(result.rows))
+      .catch(err => reject(err));
+  });
+}
+
 export function loadUserObject(userId) {
   return new Promise((resolve, reject) => {
     db.query('SELECT id, name, avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1',
