@@ -15,6 +15,9 @@ export function snakeToCamel(obj) {
       offset ? string[offset + 1].toUpperCase() : match);
   }
 
+  if (Array.isArray(obj))
+    return obj.forEach(element => snakeToCamel(element));
+
   Object.keys(obj).forEach(key => {
     // New property name
     const camelKey = camelise(key);
