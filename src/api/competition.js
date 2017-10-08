@@ -124,7 +124,7 @@ function loadCompetitions(query) {
 
 /*
  * Loads all results for a competition.
- * User objects are constructed withing the result objects, replacing the
+ * User objects are constructed within the result objects, replacing the
  * plain user id's in the original flat result objects.
  * 
  * Returns a promise that resolves with an array of result objects

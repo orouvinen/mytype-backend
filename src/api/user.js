@@ -26,7 +26,7 @@ export function getUsers(req, res) {
 
   db.query(qry)
     .then(result => {
-      return res.status(200).json({ "users": result.rows });
+      return res.status(200).json(result.rows);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
@@ -43,7 +43,7 @@ export function getUser(req, res) {
       if (result.rows.length === 0)
         return res.status(404).json({ error: "User not found" });
 
-      return res.status(200).json({ "user": result.rows[0] });
+      return res.status(200).json(result.rows[0]);
     });
 }
 
@@ -75,7 +75,7 @@ export function deleteUser(req, res) {
 export function getUserResults(req, res) {
   loadUserResults(req.params.id)
     .then(results => {
-      res.status(200).json({ "results": results });
+      res.status(200).json(results);
     })
     .catch(err => {
       res.status(500).end();
@@ -142,9 +142,7 @@ export function getNotifications(req, res) {
 
   getUserNotifications(requestUserId)
     .then(notifications => Promise.all(notifications.map(n => getEvent(n.event))))
-    .then(event => {
-      res.status(200).json(event);
-    })
+    .then(events => res.status(200).json(events))
     .catch(err => res.json(500).json({ error: err.message }));
 }
 
