@@ -143,7 +143,7 @@ export function getNotifications(req, res) {
   getUserNotifications(requestUserId)
     .then(notifications => Promise.all(notifications.map(n => getEvent(n.event))))
     .then(event => {
-      res.json(event);
+      res.status(200).json(event);
     })
     .catch(err => res.json(500).json({ error: err.message }));
 }
