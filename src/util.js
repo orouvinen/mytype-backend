@@ -16,7 +16,7 @@ export function snakeToCamel(obj) {
   }
 
   if (Array.isArray(obj))
-    return obj.forEach(element => snakeToCamel(element));
+    return obj.map(element => snakeToCamel(element));
 
   Object.keys(obj).forEach(key => {
     // New property name
