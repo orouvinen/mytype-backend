@@ -19,6 +19,11 @@ function broadcastCompetitions() {
   io.sockets.emit('competitionListUpdate', snakeToCamel(competitions));
 }
 
+function broadcastCompetitionsTo(client) {
+  client.emit('competitionListUpdate', snakeToCamel(competitions));
+}
+
+
 // Send list of competition result to all connected clients
 function broadcastCompetitionResults(competitionId) {
   io.sockets.emit('competitionResultsUpdate', {
@@ -124,7 +129,8 @@ export function restoreCompetitions() {
 export function newClient(clientSocket) {
   clients[clientSocket.id] = clientSocket;
   clientSocket.on('disconnect', () => delete (clients[clientSocket.id]));
-  broadcastCompetitions();
+  broadcastCompetitionsTo(clients[clientSocket.id]);
+  // broadcastCompetitions();
 }
 
 export function getRunningCompetitions() {
