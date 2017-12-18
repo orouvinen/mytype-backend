@@ -66,11 +66,24 @@ export function createCompetition(req, res) {
 
 
 export function getCompetitions(req, res) {
+  let competitions = {};
+
   loadCompetitions(req.query)
     .then(rows => {
-      const competitionsById = {};
-      rows.forEach(c => competitionsById[c.id] = c);
-      res.status(200).json({ competitions: competitionsById });
+      rows.forEach(c => {
+        competitions[c.id] = c;
+        competitions[c.id].results = [];
+      });
+      let tasks = rows.map(competition => loadCompetitionResults(competition.id));
+      return Promise.all(tasks);
+    })
+    .then(results => {
+      results.forEach(competitionResults => {
+        competitionResults.forEach(result => {
+          competitions[result.competition].results.push(result);
+        });
+      });      
+      res.status(200).json(competitions);
     })
     .catch(err => {
       res.status(500).json({ error: err.message });
@@ -94,7 +107,7 @@ export function getCompetitionResults(req, res) {
  */
 function loadCompetitions(query) {
   // Return unfinished competitions directly from the competition store.
-  if (query.hasOwnProperty('finished') && !query.finished)
+  if (query.hasOwnProperty('finished') && query.finished.toLowerCase() === 'false')
     return Promise.resolve(getRunningCompetitions());
 
   let statusFilter = '';
@@ -102,7 +115,7 @@ function loadCompetitions(query) {
   let offsetClause = '';
 
   if (query.hasOwnProperty('finished'))
-    statusFilter = ' WHERE finished=' + finished;
+    statusFilter = ' WHERE finished=' + query.finished;
 
   if (!isNaN(parseInt(query.limit)))
     limitClause = ' LIMIT ' + limit;
@@ -139,12 +152,12 @@ export function loadCompetitionResults(competitionId, onlyTopResults = true) {
 
   let query = "";
   if (onlyTopResults)
-    query = 'SELECT r.usr, r.start_time, r.end_time, r.wpm, r.acc FROM results r' +
+    query = 'SELECT r.usr, r.start_time, r.end_time, r.wpm, r.acc, r.competition FROM results r' +
             ' INNER JOIN ' +
             ' (SELECT MAX(wpm) wpm, usr FROM results WHERE competition=$1 GROUP BY usr) max' +
             ' ON r.usr = max.usr AND r.wpm = max.wpm ORDER BY max.wpm DESC, r.end_time ASC';
   else
-    query = 'SELECT usr, start_time, end_time, wpm, acc FROM results WHERE competition=$1' +
+    query = 'SELECT usr, start_time, end_time, wpm, acc, competition FROM results WHERE competition=$1' +
             ' ORDER BY wpm DESC, end_time ASC';
 
   return new Promise((resolve, reject) => {

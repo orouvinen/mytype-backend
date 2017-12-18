@@ -129,8 +129,6 @@ export function restoreCompetitions() {
 export function newClient(clientSocket) {
   clients[clientSocket.id] = clientSocket;
   clientSocket.on('disconnect', () => delete (clients[clientSocket.id]));
-  broadcastCompetitionsTo(clients[clientSocket.id]);
-  // broadcastCompetitions();
 }
 
 export function getRunningCompetitions() {

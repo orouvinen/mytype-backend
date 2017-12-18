@@ -3,6 +3,7 @@ build/
 node_modules/
 dev_doc/
 *.log
+npm-debug*
 deploy.sh
 .tern-project
 .jshintrc
