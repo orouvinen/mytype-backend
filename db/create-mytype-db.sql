@@ -96,7 +96,8 @@ ALTER TABLE competition_finished_events ADD FOREIGN KEY(id) REFERENCES competiti
 CREATE TABLE notifications(
   id SERIAL,
   usr INTEGER,
-  event INTEGER
+  event INTEGER,
+  acknowledged BOOLEAN DEFAULT FALSE
 );
 ALTER TABLE notifications ADD PRIMARY KEY(id);
 ALTER TABLE notifications ADD FOREIGN KEY(usr) REFERENCES users(id);

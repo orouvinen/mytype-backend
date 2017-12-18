@@ -213,7 +213,7 @@ function getCompetitionEvent(baseEvent) {
 
 function getUserNotifications(userId) {
   return new Promise((resolve, reject) => {
-    db.query('SELECT event FROM notifications WHERE usr=$1', [userId])
+    db.query('SELECT event FROM notifications WHERE usr=$1 AND acknowledged=FALSE', [userId])
       .then(result => resolve(result.rows))
       .catch(err => reject(err));
   });
