@@ -5,7 +5,6 @@
  */
 import { db, io } from './main';
 import { loadCompetitionResults } from './api/competition';
-import { snakeToCamel } from './util';
 
 export const competitions = {}; // Competition store, map from id to competition 
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
@@ -15,12 +14,12 @@ const competitionDurationHours = 24;
 // Send list of competitions to all connected sockets.
 // Results need to be camelCased for correct object property names
 // when restoring competitions from database upon startup.
-function broadcastCompetitions() {
-  io.sockets.emit('competitionListUpdate', snakeToCamel(competitions));
-}
-
-function broadcastCompetitionsTo(client) {
-  client.emit('competitionListUpdate', snakeToCamel(competitions));
+// If client is null, broadcast to all connected clients.
+function broadcastCompetitions(clientSocket = null) {
+  if (!client)
+    io.sockets.emit('competitionListUpdate', competitions);
+  else
+    clientSocket.emit('competitionListUpdate', competitions);
 }
 
 
@@ -68,7 +67,7 @@ function closeCompetition(competitionId) {
 
   db.query('SELECT close_competition($1)', [competitionId])
     .then(result => {
-      eventId = result.rows[0].close_competition;
+      eventId = result.rows[0].closeCompetition;
       return getParticipants(competitionId);
     })
     .then(users => { 

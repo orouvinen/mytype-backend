@@ -49,7 +49,7 @@ export function createCompetition(req, res) {
         // Add to competition store
         addCompetition({
           id: competitionId,
-          createdAt: result.rows[0].created_at,
+          createdAt: result.rows[0].createdAt,
           createdBy,
           language,
           finished: false,

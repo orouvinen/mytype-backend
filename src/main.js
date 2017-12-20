@@ -10,7 +10,6 @@ var bodyParser = require('body-parser');
 var jwt     = require('express-jwt');
 var http    = require('http');
 var socketIO = require('socket.io');
-var mung    = require('express-mung');
 
 import * as auth from './api/auth';
 import * as competition from './api/competition';
@@ -46,13 +45,26 @@ const dbConfig = {
 };
 
 // Create a connection pool for db queries
-export const db = new pg.Pool(dbConfig);
+const postgre = new pg.Pool(dbConfig);
+
+// Wrap the pg module's query function with our own.
+// Then new function converts result object key identifiers to camelCase before
+// resolving with the result.
+// 
+// (The new function is wrapped inside the `db` object so I don't need to change the
+// call sites, which all use the form `db.query` to do queries.
+export const db = {
+  query: function(text, values) {
+    return new Promise((resolve, reject) => {
+      postgre.query(text, values)
+        .then(result => resolve(snakeToCamel(result)))
+        .catch(err => reject(err));
+    });
+  }
+};
 
 // Frontend build and static assets from under public/
 app.use(express.static(path.join(process.env.PWD, '/public')));
-app.use(mung.json((body, req, res) => {
-  return snakeToCamel(body);
-}));
 
 // JSON parser needed for API requests
 var jsonParser = bodyParser.json();

@@ -115,12 +115,12 @@ export function saveResult(req, res) {
         addResult(competition, result);
 
       // Update user stats
-      let numTypingTests = user.num_typing_tests;
       let newAvgWpm, newAvgAcc;
+      let { numTypingTests } = user;
 
       if (numTypingTests > 0) {
-        newAvgWpm = (user.avg_wpm + wpm) / 2.0;
-        newAvgAcc = (user.avg_acc + acc) / 2.0;
+        newAvgWpm = (user.avgWpm + wpm) / 2.0;
+        newAvgAcc = (user.avgAcc + acc) / 2.0;
       } else {
         // This was the first typing test for the user
         newAvgWpm = wpm;
@@ -242,8 +242,8 @@ function loadUserResults(userId) {
       .then(result => {
         resolve(result.rows.map(row => {
           return {
-            startTime: row.start_time,
-            endTime: row.end_time,
+            startTime: row.startTime,
+            endTime: row.endTime,
             wpm: row.wpm,
             acc: row.acc,
           };
