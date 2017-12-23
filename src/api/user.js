@@ -8,7 +8,7 @@ import { addResult } from '../competition-store';
 
 export function getUsers(req, res) {
   let qry = 'SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users';
- 
+
   let sort = "";
 
   if (req.query.sort) {
@@ -88,12 +88,12 @@ export function saveResult(req, res) {
     return res.status(400).json({ error: "Missing request body" });
 
   const { user, startTime, endTime, wpm, acc } = req.body;
-  
+
   // If no competitions was specified, A NULL value would be inserted even without
   // this check, but it's here for the sake of explicitness
   let competition = null;
   if (req.body.competition !== undefined)
-    competition = req.body.competition; 
+    competition = req.body.competition;
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.
@@ -129,9 +129,7 @@ export function saveResult(req, res) {
       return db.query('UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
         [newAvgWpm, newAvgAcc, numTypingTests + 1, user.id]);
     })
-    .catch(err => {
-      res.status(500).json({ error: err.message });
-    }); 
+    .catch(err => res.status(500).json({ error: err.message }));
 }
 
 export function getNotifications(req, res) {

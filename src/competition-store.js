@@ -6,7 +6,7 @@
 import { db, io } from './main';
 import { loadCompetitionResults } from './api/competition';
 
-export const competitions = {}; // Competition store, map from id to competition 
+export const competitions = {}; // Competition store, map from id to competition
 const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
 
 const competitionDurationHours = 24;
@@ -14,9 +14,9 @@ const competitionDurationHours = 24;
 // Send list of competitions to all connected sockets.
 // Results need to be camelCased for correct object property names
 // when restoring competitions from database upon startup.
-// If client is null, broadcast to all connected clients.
+// If clientSocket is null, broadcast to all connected clients.
 function broadcastCompetitions(clientSocket = null) {
-  if (!client)
+  if (!clientSocket)
     io.sockets.emit('competitionListUpdate', competitions);
   else
     clientSocket.emit('competitionListUpdate', competitions);
@@ -46,11 +46,48 @@ export function addCompetition(competition) {
 // Adds a result to competition. Result is expected to be an
 // object containing necessary fields to describe the result.
 export function addResult(competitionId, result) {
-  const userCurrentResult = competitions[competitionId].results[result.user.id];
+  let competition = competitions[competitionId];
+
+  const userCurrentResult = competition.results[result.user.id];
   if (!userCurrentResult || result.wpm > userCurrentResult.wpm) {
-    competitions[competitionId].results[result.user.id] = result;
+    competition.results[result.user.id] = result;
     broadcastCompetitionResults(competitionId);
+
+    let sortedResults = sortResults(competition.results);
+    let ranking = sortedResults.findIndex(r => r.user.id === result.user.id);
+
+    // Create top result event for top3 results
+    if (ranking < 3) {
+      db.query('SELECT create_competition_top_result_event($1, $2, $3, $4)',
+        [competitionId, result.user.id, result.wpm, ranking])
+        .then(result => { 
+          let eventId = result.rows[0].createCompetitionTopResultEvent;
+          createCompetitionNotifications(eventId, competitionId);
+        })
+        .catch(err => {
+          console.log("Warning: failed to create competition top result event or notifications.");
+          console.log(`competition ${competitionId}, user: ${result.user.id}`);
+          console.log(err.message);
+        });
+    }
   }
+}
+
+function createCompetitionNotifications(eventId, competitionId) {
+  return getParticipants(competitionId)
+    .then(participantUserIds => {
+      return Promise.all(participantUserIds.map(userId =>
+          db.query('INSERT INTO notifications (usr, event) VALUES($1, $2)', [userId, eventId])));
+    });
+}
+
+// Returns an array of competition results, sorted by WPM in descending order.
+// Argument is a result dictionary where userId is a key that maps
+// to the user's (best) result in a competition.
+function sortResults(results) {
+  return Object.keys(results)
+    .map(userId => results[userId])
+    .sort((a, b) => b.wpm - a.wpm);
 }
 
 
@@ -70,13 +107,13 @@ function closeCompetition(competitionId) {
       eventId = result.rows[0].closeCompetition;
       return getParticipants(competitionId);
     })
-    .then(users => { 
+    .then(users => {
       // Remove the competition from store and send updated store to clients
       delete(competitions[competitionId]);
       broadcastCompetitions();
 
       // Create notifications about finished competition
-      const notifyTasks = users.map(userId => 
+      const notifyTasks = users.map(userId =>
         db.query('INSERT INTO notifications(usr, event) VALUES($1, $2)',
           [userId, eventId]));
 
@@ -92,7 +129,7 @@ function closeCompetition(competitionId) {
 // Returns an array of user ids.
 function getParticipants(competitionId) {
   return new Promise((resolve, reject) =>
-    db.query('SELECT usr FROM results WHERE competition=$1', [competitionId])
+    db.query('SELECT DISTINCT usr FROM results WHERE competition=$1', [competitionId])
       .then(result => resolve(result.rows.map(row => row.usr)))
       .catch(err => reject(err)));
 }

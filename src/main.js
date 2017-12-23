@@ -48,9 +48,9 @@ const dbConfig = {
 const postgre = new pg.Pool(dbConfig);
 
 // Wrap the pg module's query function with our own.
-// Then new function converts result object key identifiers to camelCase before
+// The new function converts result object key identifiers to camelCase before
 // resolving with the result.
-// 
+//
 // (The new function is wrapped inside the `db` object so I don't need to change the
 // call sites, which all use the form `db.query` to do queries.
 export const db = {

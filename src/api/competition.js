@@ -24,7 +24,7 @@ export function getCompetition(req, res) {
     })
     .then(result => {
       competition.results = result;
-      
+
       if (!competition.finished)
         competition.content = getCompetitionContent(competition.id);
 
@@ -82,7 +82,7 @@ export function getCompetitions(req, res) {
         competitionResults.forEach(result => {
           competitions[result.competition].results.push(result);
         });
-      });      
+      });
       res.status(200).json(competitions);
     })
     .catch(err => {
@@ -139,10 +139,10 @@ function loadCompetitions(query) {
  * Loads all results for a competition.
  * User objects are constructed within the result objects, replacing the
  * plain user id's in the original flat result objects.
- * 
+ *
  * Returns a promise that resolves with an array of result objects
  * or rejects with an error object.
- * 
+ *
  * If onlyTopResults is true (the default), loads only best result for each user.
  * Otherwise gets all the results for each player.
  */
