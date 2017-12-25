@@ -45,7 +45,7 @@ const dbConfig = {
 };
 
 // Create a connection pool for db queries
-const postgre = new pg.Pool(dbConfig);
+export const postgre = new pg.Pool(dbConfig);
 
 // Wrap the pg module's query function with our own.
 // The new function converts result object key identifiers to camelCase before
@@ -57,7 +57,10 @@ export const db = {
   query: function(text, values) {
     return new Promise((resolve, reject) => {
       postgre.query(text, values)
-        .then(result => resolve(snakeToCamel(result)))
+        .then(result => {
+          result.rows = snakeToCamel(result.rows);
+          resolve(result);
+        })
         .catch(err => reject(err));
     });
   }
