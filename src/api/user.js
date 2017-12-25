@@ -145,14 +145,11 @@ export function getNotifications(req, res) {
 }
 
 
-/*******************************************************************************
- *
+/*
  * Loaders used by API workers.
- * These typically load an array of objects to be further transformed or
- * joined to another object by the main API worker.
  */
 
-function getEvent(eventId) {
+export function getEvent(eventId) {
   return new Promise((resolve, reject) => {
     db.query('SELECT id, type FROM events WHERE id=$1', [eventId])
       .then(result => result.rows[0])

@@ -7,9 +7,14 @@ import { db, io } from './main';
 import { loadCompetitionResults } from './api/competition';
 
 export const competitions = {}; // Competition store, map from id to competition
-const clients = {};      // Client sockets by socket ID (i.e. socket.id -> socket map)
+const clients = {};      // Client sockets by socket ID (i.e. socket.id -> to socket mapping)
+
 
 const competitionDurationHours = 24;
+
+// Dictionary of userId,socket pairs which tell the socket to use
+// when sending notification for specific user.
+const notificationSubscribers = {};
 
 // Send list of competitions to all connected sockets.
 // Results need to be camelCased for correct object property names
@@ -45,13 +50,16 @@ export function addCompetition(competition) {
 
 // Adds a result to competition. Result is expected to be an
 // object containing necessary fields to describe the result.
-export function addResult(competitionId, result) {
+export function addResult(competitionId, result, topResultNotifications = true) {
   let competition = competitions[competitionId];
 
   const userCurrentResult = competition.results[result.user.id];
   if (!userCurrentResult || result.wpm > userCurrentResult.wpm) {
     competition.results[result.user.id] = result;
     broadcastCompetitionResults(competitionId);
+
+    if (!topResultNotifications)
+      return;
 
     let sortedResults = sortResults(competition.results);
     let ranking = sortedResults.findIndex(r => r.user.id === result.user.id);
@@ -60,25 +68,46 @@ export function addResult(competitionId, result) {
     if (ranking < 3) {
       db.query('SELECT create_competition_top_result_event($1, $2, $3, $4)',
         [competitionId, result.user.id, result.wpm, ranking])
-        .then(result => { 
-          let eventId = result.rows[0].createCompetitionTopResultEvent;
-          createCompetitionNotifications(eventId, competitionId);
+        .then(res => {
+          let eventId = res.rows[0].createCompetitionTopResultEvent;
+          return createCompetitionNotifications(eventId, competitionId)
+            .then(() =>
+              notifyCompetitionParticipants(competitionId, {
+                eventId,
+                type: 'top_result',
+                wpm: result.wpm,
+                ranking,
+                user: result.user,
+              }));
         })
         .catch(err => {
-          console.log("Warning: failed to create competition top result event or notifications.");
-          console.log(`competition ${competitionId}, user: ${result.user.id}`);
+          console.log("Warning: something in addResult() didn't go as planned.");
+          console.log(`competitionId: ${competitionId}, userId: ${result.user.id}`);
           console.log(err.message);
         });
     }
   }
 }
 
+
+function notifyCompetitionParticipants(competitionId, event) {
+  return getParticipants(competitionId)
+    .then(userIds => { userIds.forEach(id => {
+      if (notificationSubscribers[id])
+        notificationSubscribers[id].emit('eventNotification', event);
+    });
+  });
+}
+
+
 function createCompetitionNotifications(eventId, competitionId) {
   return getParticipants(competitionId)
     .then(participantUserIds => {
-      return Promise.all(participantUserIds.map(userId =>
-          db.query('INSERT INTO notifications (usr, event) VALUES($1, $2)', [userId, eventId])));
-    });
+      let tasks = participantUserIds.map(userId =>
+        db.query('INSERT INTO notifications (usr, event) VALUES($1, $2)', [userId, eventId]));
+
+      return Promise.all(tasks);
+  });
 }
 
 // Returns an array of competition results, sorted by WPM in descending order.
@@ -126,7 +155,7 @@ function closeCompetition(competitionId) {
 }
 
 // Get competition participants.
-// Returns an array of user ids.
+// Returns a promise that resolved with an array of user ids.
 function getParticipants(competitionId) {
   return new Promise((resolve, reject) =>
     db.query('SELECT DISTINCT usr FROM results WHERE competition=$1', [competitionId])
@@ -150,7 +179,7 @@ export function restoreCompetitions() {
         competition.results = {};
         loadCompetitionResults(competition.id).then(results => {
           results.forEach(result => {
-            addResult(competition.id, result);
+            addResult(competition.id, result, false);
           });
         });
       });
@@ -162,9 +191,23 @@ export function restoreCompetitions() {
 
 // newClient(): stores client socket to client pool when they connect.
 // On disconnect, remove clients from the pool.
-export function newClient(clientSocket) {
-  clients[clientSocket.id] = clientSocket;
-  clientSocket.on('disconnect', () => delete (clients[clientSocket.id]));
+export function newClient(socket) {
+  clients[socket.id] = socket;
+  socket.on('disconnect', () => {
+    // Remove possible notification subscription
+    for (let userId of Object.keys(notificationSubscribers)) {
+      if (notificationSubscribers[userId] == socket) {
+        delete(notificationSubscribers[userId]);
+        break;
+      }
+    }
+    delete (clients[socket.id]);
+  });
+
+  socket.on('notificationSubscribe', msg => {
+    if (msg.userId)
+      notificationSubscribers[msg.userId] = socket;
+  });
 }
 
 export function getRunningCompetitions() {
