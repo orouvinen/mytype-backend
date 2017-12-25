@@ -100,5 +100,5 @@ CREATE TABLE notifications(
   acknowledged BOOLEAN DEFAULT FALSE
 );
 ALTER TABLE notifications ADD PRIMARY KEY(id);
-ALTER TABLE notifications ADD FOREIGN KEY(usr) REFERENCES users(id);
-ALTER TABLE notifications ADD FOREIGN key(event) REFERENCES events(id);
+ALTER TABLE notifications ADD FOREIGN KEY(usr) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE notifications ADD FOREIGN key(event) REFERENCES events(id) ON DELETE CASCADE;
