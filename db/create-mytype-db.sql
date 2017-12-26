@@ -66,6 +66,21 @@ CREATE TABLE events(
 );
 ALTER TABLE events ADD PRIMARY KEY(id);
 
+-- There's no relation from the base event type to the inherited event types,
+-- so the deletion from `events` will be handled with trigger from the
+-- inherited event tables (e.g. competition_events).
+
+-- PostgreSQL needs a stored function for trigger execution
+DROP FUNCTION IF EXISTS delete_event();
+CREATE OR REPLACE FUNCTION delete_event()
+RETURNS TRIGGER AS $delete_event$
+BEGIN
+  DELETE FROM events WHERE id=OLD.id;
+  RETURN OLD;
+END;
+$delete_event$ LANGUAGE plpgsql;
+
+
 -- Competition-specific event properties
 CREATE TABLE competition_events(
   id INTEGER,
@@ -76,12 +91,16 @@ ALTER TABLE competition_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_events ADD FOREIGN KEY(id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE competition_events ADD FOREIGN KEY(competition) REFERENCES competitions(id) ON DELETE CASCADE;
 
+CREATE TRIGGER event_delete AFTER DELETE ON competition_events
+  FOR EACH ROW EXECUTE PROCEDURE delete_event();
+
 CREATE TABLE competition_top_result_events(
   id INTEGER,
   usr INTEGER,
   wpm DOUBLE PRECISION,
   user_ranking INTEGER
 );
+ALTER TABLE competition_top_result_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_top_result_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
 ALTER TABLE competition_top_result_events ADD FOREIGN KEY(usr) REFERENCES users(id);
 
@@ -90,6 +109,7 @@ ALTER TABLE competition_top_result_events ADD FOREIGN KEY(usr) REFERENCES users(
 CREATE TABLE competition_finished_events(
   id INTEGER
 );
+ALTER TABLE competition_finished_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_finished_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
 
 
