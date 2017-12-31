@@ -28,7 +28,7 @@ ALTER TABLE users ADD UNIQUE(email);
 
 CREATE TABLE competitions(
   id SERIAL,
-  created_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   created_by INTEGER NULL,
   finished BOOLEAN DEFAULT FALSE,
   content TEXT,
@@ -98,7 +98,7 @@ CREATE TABLE competition_top_result_events(
   id INTEGER,
   usr INTEGER,
   wpm DOUBLE PRECISION,
-  user_ranking INTEGER
+  ranking INTEGER
 );
 ALTER TABLE competition_top_result_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_top_result_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
@@ -117,6 +117,7 @@ CREATE TABLE notifications(
   id SERIAL,
   usr INTEGER,
   event INTEGER,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   acknowledged BOOLEAN DEFAULT FALSE
 );
 ALTER TABLE notifications ADD PRIMARY KEY(id);

@@ -37,7 +37,7 @@ DECLARE
 BEGIN
   SELECT create_competition_event(competition_id, 'top_result') INTO new_event_id;
 
-  INSERT INTO competition_top_result_events(id, usr, wpm, user_ranking)
+  INSERT INTO competition_top_result_events(id, usr, wpm, ranking)
    VALUES(new_event_id, user_id, wpm, ranking);
 
   RETURN new_event_id;
