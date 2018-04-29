@@ -6,7 +6,7 @@ import { addResult } from '../competition-store';
  * /api/users/
  */
 
-export function getUsers(req, res) {
+export async function getUsers(req, res) {
   let qry = 'SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users';
 
   let sort = "";
@@ -17,55 +17,58 @@ export function getUsers(req, res) {
       'wpm': `avg_wpm ${req.query.order}, avg_acc ${req.query.order}`,
       'typing_tests': `num_typing_tests ${req.query.order}`,
     }[req.query.sort];
-    if (sort === undefined)
-      return res.status(400).json({ error: "Invalid request parameters "});
+    if (!sort)
+      return res.status(400).json({ error: "Invalid sorting criteria" });
   }
 
   if (req.query.sort)
     qry += ` ORDER BY ${sort}`;
 
-  db.query(qry)
-    .then(result => {
-      return res.status(200).json(result.rows);
-    })
-    .catch(err => {
+  try {
+    let { rows } = await (db.query(qry));
+    res.json(rows);
+  } catch(err) {
       res.status(500).json({ error: err.message });
-    });
+  }
 }
 
 /*
  * Return user account data
  */
-export function getUser(req, res) {
-  db.query('SELECT id, name, num_typing_tests, avg_wpm, avg_acc FROM users WHERE id=$1',
-    [req.params.id])
-    .then(result => {
-      if (result.rows.length === 0)
-        return res.status(404).json({ error: "User not found" });
-
-      return res.status(200).json(result.rows[0]);
-    });
+export async function getUser(req, res) {
+  try {
+    let { rows } =
+      await db.query('SELECT id, name, num_typing_tests, avg_wpm, avg_acc FROM users WHERE id=$1',
+        [req.params.id]);
+    
+    if (rows.length === 0)
+      res.status(404).end();
+    
+    res.json(rows[0]);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
 
 /*
  * Delete user account
  */
-export function deleteUser(req, res) {
+export async function deleteUser(req, res) {
   // For non-admins, only allow deleting your own account
   if (req.user.id !== req.params.id && !req.user.admin)
-    return res.status(401).json({ error: "Not permitted" });
+    return res.status(403).end();
 
-  db.query('DELETE FROM users WHERE id=$1 RETURNING id', [req.params.id])
-    .then(result => {
-      if (result.rows.length === 0)
-        return res.status(404).json({ error: "User not found" });
-      else
-        return res.status(204).end();
-    })
-    .catch(err => {
-      res.status(500).end();
-    });
+  try {
+    let { rows } = await db.query('DELETE FROM users WHERE id=$1 RETURNING id', [req.params.id]);
+
+    if (rows.length === 0)
+      return res.status(404).end();
+
+    res.status(204).end();
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
 
@@ -74,74 +77,79 @@ export function deleteUser(req, res) {
  */
 export function getUserResults(req, res) {
   loadUserResults(req.params.id)
-    .then(results => {
-      res.status(200).json(results);
-    })
-    .catch(err => {
-      res.status(500).end();
-    });
+    .then(results => res.status(200).json(results))
+    .catch(err => res.status(500).json({ error: err.message }));
 }
 
 
-export function saveResult(req, res) {
+export async function saveResult(req, res) {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
-  const { user, startTime, endTime, wpm, acc } = req.body;
+  let userId = req.params.id;
+  let { startTime, endTime, wpm, acc } = req.body;
+  let { competition } = req.body;
 
-  // If no competitions was specified, A NULL value would be inserted even without
+
+  // If no competitions was specified (undefined), A NULL value would be inserted even without
   // this check, but it's here for the sake of explicitness
-  let competition = null;
-  if (req.body.competition !== undefined)
-    competition = req.body.competition;
+  if (!competition)
+    competition = null;
+
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
    * timestamps are seconds since epoch.
    */
-  db.query('INSERT INTO results VALUES ($1, $2, to_timestamp($3), to_timestamp($4), $5, $6)' +
-  ' RETURNING start_time',
-    [user, competition, startTime / 1000.0, endTime / 1000.0, wpm, acc])
-    .then(result => {
-      res.set('Location', `/api/users/${user}/results/${startTime}`);
-      res.status(201).end();
-      return loadUserObject(user);
-    })
-    .then(user => {
-      // Replace a mere user id in the result with a user object
-      const result = req.body;
-      result.user = { id: user.id, name: user.name };
+  try {
+    await db.query(
+      'INSERT INTO results VALUES ($1, $2, to_timestamp($3), to_timestamp($4), $5, $6)' +
+      ' RETURNING start_time',
+      [userId, competition, startTime / 1000.0, endTime / 1000.0, wpm, acc]);
 
-      if (competition)
-        addResult(competition, result);
+    res.set('Location', `/api/users/${userId}/results/${startTime}`);
+    res.status(201).end();
 
-      // Update user stats
-      let newAvgWpm, newAvgAcc;
-      let { numTypingTests } = user;
+    // Add to competition store and update user statistics
+    let result = req.body;
+    let user = await loadUserObject(userId);
+    result.user = { id: user.id, name: user.name };
 
-      if (numTypingTests > 0) {
-        newAvgWpm = (user.avgWpm + wpm) / 2.0;
-        newAvgAcc = (user.avgAcc + acc) / 2.0;
-      } else {
-        // This was the first typing test for the user
-        newAvgWpm = wpm;
-        newAvgAcc = acc;
-      }
-      return db.query('UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
-        [newAvgWpm, newAvgAcc, numTypingTests + 1, user.id]);
-    })
-    .catch(err => res.status(500).json({ error: err.message }));
+    if (competition)
+      addResult(competition, result);
+
+    let newAvgWpm, newAvgAcc;
+    let { numTypingTests } = user;
+
+    if (numTypingTests > 0) {
+      newAvgWpm = (user.avgWpm + wpm) / 2.0;
+      newAvgAcc = (user.avgAcc + acc) / 2.0;
+    } else {
+      // This was the first typing test for the user
+      newAvgWpm = wpm;
+      newAvgAcc = acc;
+    }
+    await db.query(
+      'UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
+      [newAvgWpm, newAvgAcc, numTypingTests + 1, user.id]
+    );
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
-export function getNotifications(req, res) {
+export async function getNotifications(req, res) {
   // No need to access notifcations of other users than oneself
-  const requestUserId = parseInt(req.params.id, 10);
-  if (req.user.id !== requestUserId)
-    return res.status(401).end();
+  const userId = parseInt(req.params.id, 10);
+  if (req.user.id !== userId)
+    return res.status(403).end();
 
-  getUserNotifications(requestUserId)
-    .then(notifications => Promise.all(notifications.map(n => getEvent(n.event))))
-    .then(events => res.status(200).json(events))
-    .catch(err => res.json(500).json({ error: err.message }));
+  try {
+    let notifications = await getUserNotifications(userId);
+    let events = await Promise.all(notifications.map(n => getEvent(n.event)));
+    res.json(events);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
 
@@ -149,15 +157,13 @@ export function getNotifications(req, res) {
  * Loaders used by API workers.
  */
 
-export function getEvent(eventId) {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT id, type FROM events WHERE id=$1', [eventId])
-      .then(result => result.rows[0])
-      .then(event => getTypedEvent(event))
-      .then(event => resolve(event))
-      .catch(err => reject(err));
-  });
+export async function getEvent(eventId) {
+  let { rows } = await db.query('SELECT id, type FROM events WHERE id=$1', [eventId]);
+  let event = rows[0];
+  let typedEvent = await getTypedEvent(event);
+  return typedEvent;
 }
+
 
 function getTypedEvent(baseEvent) {
   if (baseEvent.type === 'competition')
@@ -166,86 +172,64 @@ function getTypedEvent(baseEvent) {
     return new Promise((_, reject) => reject("Invalid event type"));
 }
 
-function getCompetitionEvent(baseEvent) {
+async function getCompetitionEvent(baseEvent) {
   let event = {};
 
-  return new Promise((resolve, reject) => {
-    db.query('SELECT competition, type FROM competition_events WHERE id=$1',
-      [baseEvent.id])
-      .then(result => {
-        event = Object.assign({}, result.rows[0]);
+  event = 
+    (await db.query('SELECT competition, type FROM competition_events WHERE id=$1',
+      [baseEvent.id])).rows[0];
 
-        let eventTbl, columns;
-        switch(event.type) {
-        case 'top_result':
-          eventTbl = 'competition_top_result_events';
-          columns = 'usr, wpm, user_ranking';
-          break;
+  let eventTbl, columns;
 
-        case 'finished':
-          eventTbl = 'competition_finished_events';
-          columns = 'id';
-        }
+  switch (event.type) {
+    case 'top_result':
+      eventTbl = 'competition_top_result_events';
+      columns = 'usr, wpm, ranking';
+      break;
 
-        return db.query(`SELECT ${columns} FROM ${eventTbl} WHERE id=$1`, [baseEvent.id]);
-      })
-      .then(result => Object.assign(event, result.rows[0]))
-      .then(event => {
-        // For top result events, replace user id with actual user object
-        if (event.type === 'top_result')
-          return loadUserObject(event.usr);
-        else resolve(event);
-      })
-      .then(user => {
-        event.user = user;
-        delete(event.usr);
-        resolve(event);
-      })
-      .catch(err => reject(err));
-  });
+    case 'finished':
+      eventTbl = 'competition_finished_events';
+      columns = 'id';
+      break;
+
+    default:
+      break;
+  }
+  let typedEvent = (await db.query(`SELECT ${columns} FROM ${eventTbl} WHERE id=$1`, [baseEvent.id])).rows[0];
+  event = Object.assign(event, typedEvent);
+  if (event.type === 'top_result') {
+    event.user = await loadUserObject(event.usr);
+    delete(event.usr);
+  }
+
+  return event;
 }
 
 
-function getUserNotifications(userId) {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT event FROM notifications WHERE usr=$1 AND acknowledged=FALSE', [userId])
-      .then(result => resolve(result.rows))
-      .catch(err => reject(err));
-  });
+async function getUserNotifications(userId) {
+  let notifications =
+    (await db.query('SELECT event FROM notifications WHERE usr=$1 AND acknowledged=FALSE',
+      [userId])).rows;
+
+  return notifications;
 }
 
-export function loadUserObject(userId) {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT id, name, avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1',
-    [userId])
-      .then(result => {
-        if (result.rows.length === 0)
-          reject(new Error("User not found"));
-        resolve(result.rows[0]);
-      })
-      .catch(err => {
-        reject(err);
-      });
-  });
+export async function loadUserObject(userId) {
+  let { rows } = 
+    await db.query('SELECT id, name, avg_wpm, avg_acc, num_typing_tests FROM users WHERE id=$1',
+      [userId]);
+  
+  if (rows.length === 0)
+    throw new Error("User not found");
+
+  return rows[0];
 }
 
 
-function loadUserResults(userId) {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
-      [userId])
-      .then(result => {
-        resolve(result.rows.map(row => {
-          return {
-            startTime: row.startTime,
-            endTime: row.endTime,
-            wpm: row.wpm,
-            acc: row.acc,
-          };
-        }));
-      })
-      .catch(err => {
-        reject(err);
-      });
-  });
+async function loadUserResults(userId) {
+  let userResults =
+    (await db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
+      [userId])).rows;
+  
+  return userResults;
 }

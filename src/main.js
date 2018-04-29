@@ -14,9 +14,8 @@ var socketIO = require('socket.io');
 import * as auth from './api/auth';
 import * as competition from './api/competition';
 import * as user from './api/user';
-import { isEmpty } from './util';
+import { isEmpty, snakeToCamel } from './util';
 import { newClient, restoreCompetitions } from './competition-store';
-import { snakeToCamel } from './util';
 
 var app = express();
 var server = http.createServer(app);

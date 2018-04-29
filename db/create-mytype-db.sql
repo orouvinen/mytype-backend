@@ -102,7 +102,7 @@ CREATE TABLE competition_top_result_events(
 );
 ALTER TABLE competition_top_result_events ADD PRIMARY KEY(id);
 ALTER TABLE competition_top_result_events ADD FOREIGN KEY(id) REFERENCES competition_events(id) ON DELETE CASCADE;
-ALTER TABLE competition_top_result_events ADD FOREIGN KEY(usr) REFERENCES users(id);
+ALTER TABLE competition_top_result_events ADD FOREIGN KEY(usr) REFERENCES users(id) ON DELETE CASCADE;
 
 -- With no additional properties to hold, this table is redundant.
 -- But I'd like to keep it around for a while for the sake of completeness.
