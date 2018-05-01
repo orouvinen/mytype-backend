@@ -17,30 +17,25 @@ export const secret = process.env.SECRET;
  *  "email": email address
  *  "password": password
  */
-export function createUser(req, res) {
+export async function createUser(req, res) {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
   const { name, email, password } = req.body;
   const salt = randomSalt().toString('base64');
-  passwordHash(password, salt).then(hash => {
-    db.query("INSERT INTO users(name, email, password, salt) VALUES " +
-             "($1, $2, $3, $4) RETURNING id",
-      [name, email, hash, salt])
-      .then(result => {
-        // When succesfully fulfilling the request, send a 201 Created-response
-        // with a Location-header stating the URI for the created user
-        const newUserId = result.rows[0].id;
-        res.set('Location', '/api/users/' + newUserId);
-        res.status(201).end();
-      })
-      .catch(err => {
-        res.status(409).json({ error: err.message });
-      });
-  })
-  .catch(err => {
-    res.status(400).json({ error: err.message });
-  });
+  try {
+    const hash = await passwordHash(password, salt);
+    const { rows } =
+      await db.query('INSERT INTO users(name, email, password, salt) VALUES ' +
+        '($1, $2, $3, $4) RETURNING id',
+        [name, email, hash, salt]);
+
+    const newUserId = rows[0].id;
+    res.set('Location', '/api/users/' + newUserId);
+    res.status(201).end();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
 /*
@@ -49,10 +44,12 @@ export function createUser(req, res) {
  * "email": account email address
  * "password": account password
  */
-export function authenticate(req, res) {
+export async function authenticate(req, res) {
   // Validate request body
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
+
+  const { email } = req.body;
 
   // Validate request header
   const authHeader = req.header('WWW-Authenticate');
@@ -61,34 +58,30 @@ export function authenticate(req, res) {
   else if (authHeader !== 'Bearer')
     return res.status(400).json({ error: "Invalid WWW-Authenticate header" });
 
-  // Retrieve password hash and the salt that it was generated with,
-  // then compare the stored hash to a hash generated from the same salt
-  // together with the password in the request.
-  // If they match, then the password is correct.
-  db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1',
-    [req.body.email])
-    .then(result => {
-      if (result.rows.length === 0)
-        return res.status(401).json({ error: "User account not found" });
+  try {
+    let { rows } = await
+      db.query('SELECT id, password, salt, name, admin FROM users WHERE email=$1',
+        [email]);
 
-      const { id, password, salt, name, admin } = result.rows[0];
-      const email = req.body.email;
+    if (rows.length === 0)
+      res.status(401).json({ error: "Account not found" });
 
-      passwordHash(req.body.password, salt).then(hash => {
-        if (hash !== password)
-          res.status(401).json({ error: "Invalid password" });
-        else {
-          const token = createToken(id, name, email, admin);
-          loadUserObject(id)
-          .then(user => {
-            return res.status(200).json({user, token});
-          });
-        }
-      });
-    })
-    .catch(err => {
-      res.status(500).end();
-    });
+    const { id, password, salt, name, admin } = rows[0];
+
+    // Retrieve password hash and the salt that it was generated with,
+    // then compare the stored hash to a hash generated from the same salt
+    // together with the password in the request.
+    // If they match, then the password is correct.
+    let hash = await genPasswordHash(req.body.password, salt);
+    if (hash !== password)
+      return res.status(401).end(); // invalid password
+
+    const token = createToken(id, name, email, admin);
+    const user = await loadUserObject(id);
+    res.status(200).json({ user, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }
 
 
@@ -121,7 +114,7 @@ const saltBytes = 14; // 20 char base64 string
 
 
 // Generates a hash from a plaintext password using salt
-function passwordHash(plaintext, salt) {
+function genPasswordHash(plaintext, salt) {
   return new Promise((resolve, reject) => {
     crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512',
       (err, key) => {
