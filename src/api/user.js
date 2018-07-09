@@ -145,7 +145,7 @@ export async function getNotifications(req, res) {
 
   try {
     let notifications = await getUserNotifications(userId);
-    let events = await Promise.all(notifications.map(n => getEvent(n.event)));
+    let events = await Promise.all(notifications.map(n => getEvent(n.event, req.user.id)));
     res.json(events);
   } catch(err) {
     res.status(500).json({ error: err.message });
@@ -157,10 +157,18 @@ export async function getNotifications(req, res) {
  * Loaders used by API workers.
  */
 
-export async function getEvent(eventId) {
-  let { rows } = await db.query('SELECT id, type FROM events WHERE id=$1', [eventId]);
+export async function getEvent(eventId, userId) {
+  // let { rows } = await db.query('SELECT id, type FROM events WHERE id=$1', [eventId]);
+  let { rows } = await db.query(
+    'SELECT e.id, e.type, n.id AS notification_id' +
+    ' FROM events e' +
+    ' JOIN notifications n ON n.event = e.id AND n.usr = $1' +
+    ' WHERE e.id = $2', 
+    [userId, eventId]);
+
   let event = rows[0];
   let typedEvent = await getTypedEvent(event);
+  
   return typedEvent;
 }
 
@@ -178,6 +186,8 @@ async function getCompetitionEvent(baseEvent) {
   event = 
     (await db.query('SELECT competition, type FROM competition_events WHERE id=$1',
       [baseEvent.id])).rows[0];
+
+  event.notificationId = baseEvent.notificationId;
 
   let eventTbl, columns;
 
@@ -201,14 +211,14 @@ async function getCompetitionEvent(baseEvent) {
     event.user = await loadUserObject(event.usr);
     delete(event.usr);
   }
-
+  event.acknowledged = false;
   return event;
 }
 
 
 async function getUserNotifications(userId) {
   let notifications =
-    (await db.query('SELECT event FROM notifications WHERE usr=$1 AND acknowledged=FALSE',
+    (await db.query('SELECT event FROM notifications WHERE usr=$1 AND acknowledged=FALSE ORDER BY created_at DESC',
       [userId])).rows;
 
   return notifications;

@@ -14,6 +14,7 @@ var socketIO = require('socket.io');
 import * as auth from './api/auth';
 import * as competition from './api/competition';
 import * as user from './api/user';
+import * as notification from './api/notification';
 import { isEmpty, snakeToCamel } from './util';
 import { newClient, restoreCompetitions } from './competition-store';
 
@@ -92,6 +93,8 @@ app.get('/api/competitions/:id', jsonParser, competition.getCompetition);
 app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.saveResult);
 app.get('/api/users/:id/notifications', jwt({ secret: auth.secret }), tokenChecker, user.getNotifications);
+
+app.put('/api/notifications/:id/acknowledge', jwt({ secret: auth.secret }), tokenChecker, notification.acknowledge);
 
 // Rest of the urls are for front-end
 app.get('*', (req, res) => {
