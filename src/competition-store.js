@@ -76,15 +76,25 @@ export async function addResult(competitionId, result, topResultNotifications = 
       let res = await db.query('SELECT create_competition_top_result_event($1, $2, $3, $4)',
         [competitionId, result.user.id, result.wpm, ranking]);
       let eventId = res.rows[0].createCompetitionTopResultEvent;
-      await createCompetitionNotifications(eventId, competitionId);
-      await notifyCompetitionParticipants(competitionId, {
-        eventId,
-        competition: competitionId,
-        type: 'top_result',
-        wpm: result.wpm,
-        ranking,
-        user: result.user,
+      let insertRes = await createCompetitionNotifications(eventId, competitionId);
+      let userNotifications = {};
+
+      insertRes.forEach(r => {
+        let { userId, notificationId } = r.rows[0];
+        userNotifications[userId] = notificationId;
       });
+
+      await notifyCompetitionParticipants(
+        competitionId, {
+          eventId,
+          competition: competitionId,
+          type: 'top_result',
+          wpm: result.wpm,
+          ranking,
+          user: result.user,
+        }, 
+        userNotifications);
+
     } catch(e) {
       console.log("Warning: something in addResult() didn't go as planned.");
       console.log(`competitionId: ${competitionId}, userId: ${result.user.id}`);
@@ -95,12 +105,19 @@ export async function addResult(competitionId, result, topResultNotifications = 
 
 
 // Notifies connected clients who are participants in a competition about
-// a competition event
-async function notifyCompetitionParticipants(competitionId, event) {
+// a competition event.
+//
+// Arg `notificationUserMappings` maps user ids to notification ids ([{ userId: notificationId }]),
+// telling which notification belongs to whom.
+async function notifyCompetitionParticipants(competitionId, event, userNotificationMapping) {
   let participants = await getParticipants(competitionId);
   for (let userId of participants) {
-    if (notificationSubscribers[userId])
+    if (notificationSubscribers[userId]) {
+      let notificationId = userNotificationMapping[userId];
+      event['notificationId'] = notificationId;
+      console.log(event);
       notificationSubscribers[userId].emit('eventNotification', event);
+    }
   }
 }
 
@@ -109,7 +126,7 @@ async function notifyCompetitionParticipants(competitionId, event) {
 async function createCompetitionNotifications(eventId, competitionId) {
   let participants = await getParticipants(competitionId);
   return Promise.all(participants.map(userId =>
-    db.query('INSERT INTO notifications (usr, event) VALUES($1, $2)', [userId, eventId])));
+     db.query('INSERT INTO notifications (usr, event) VALUES($1, $2) RETURNING id AS notification_id, usr AS user_id', [userId, eventId])));
 }
 
 // Returns an array of competition results, sorted by WPM in descending order.
