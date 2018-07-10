@@ -72,7 +72,7 @@ export async function authenticate(req, res) {
     // then compare the stored hash to a hash generated from the same salt
     // together with the password in the request.
     // If they match, then the password is correct.
-    let hash = await genPasswordHash(req.body.password, salt);
+    let hash = await passwordHash(req.body.password, salt);
     if (hash !== password)
       return res.status(401).end(); // invalid password
 
