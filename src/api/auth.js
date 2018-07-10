@@ -114,7 +114,7 @@ const saltBytes = 14; // 20 char base64 string
 
 
 // Generates a hash from a plaintext password using salt
-function genPasswordHash(plaintext, salt) {
+function passwordHash(plaintext, salt) {
   return new Promise((resolve, reject) => {
     crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512',
       (err, key) => {
