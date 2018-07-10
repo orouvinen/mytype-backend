@@ -1,10 +1,10 @@
 import { db } from '../main';
 
 export async function acknowledge(req, res) {
-  let { notificationId } = req.params.id;
+  let { notificationIds } = req.query;
 
   try {
-    let result = await db.query('UPDATE notifications SET acknowledged=1 WHERE id=?', [notificationId]);
+    let result = await db.query('UPDATE notifications SET acknowledged = true WHERE id = ANY ($1)', [notificationIds]);
 
     let httpStatus = result.rowCount == 0 ? 404 : 204;
     res.status(httpStatus).end();
