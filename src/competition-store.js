@@ -115,7 +115,6 @@ async function notifyCompetitionParticipants(competitionId, event, userNotificat
     if (notificationSubscribers[userId]) {
       let notificationId = userNotificationMapping[userId];
       event['notificationId'] = notificationId;
-      console.log(event);
       notificationSubscribers[userId].emit('eventNotification', event);
     }
   }
