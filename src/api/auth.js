@@ -39,19 +39,16 @@ export async function createUser(req, res) {
 }
 
 /*
- * Authenticate user account
- *
+ * req body:
  * "email": account email address
  * "password": account password
  */
 export async function authenticate(req, res) {
-  // Validate request body
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
   const { email } = req.body;
 
-  // Validate request header
   const authHeader = req.header('WWW-Authenticate');
   if (!authHeader)
     return res.status(400).json({ error: "Missing auth header" });
@@ -64,14 +61,10 @@ export async function authenticate(req, res) {
         [email]);
 
     if (rows.length === 0)
-      res.status(401).json({ error: "Account not found" });
+      return res.status(401).json({ error: "Account not found" });
 
     const { id, password, salt, name, admin } = rows[0];
 
-    // Retrieve password hash and the salt that it was generated with,
-    // then compare the stored hash to a hash generated from the same salt
-    // together with the password in the request.
-    // If they match, then the password is correct.
     let hash = await passwordHash(req.body.password, salt);
     if (hash !== password)
       return res.status(401).end(); // invalid password
@@ -85,18 +78,6 @@ export async function authenticate(req, res) {
 }
 
 
-
-
-/*
- * Create an auth token
- * Args:
- *  id:   user id
- *  name: username
- *  email: account email address
- *  admin: admin flag
- *
- * Returns the JWT as a string
- */
 function createToken(id, name, email, admin) {
   const payload = {
     id,
@@ -113,7 +94,6 @@ const keyLength = 64; // 128 char hex string
 const saltBytes = 14; // 20 char base64 string
 
 
-// Generates a hash from a plaintext password using salt
 function passwordHash(plaintext, salt) {
   return new Promise((resolve, reject) => {
     crypto.pbkdf2(plaintext, salt, iterations, keyLength, 'sha512',
@@ -125,7 +105,6 @@ function passwordHash(plaintext, salt) {
       });
   });
 }
-
 
 function randomSalt() {
   return crypto.randomBytes(saltBytes);

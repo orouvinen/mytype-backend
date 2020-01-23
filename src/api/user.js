@@ -2,17 +2,16 @@ import { db } from '../main';
 import { isEmpty } from '../util';
 import { addResult } from '../competition-store';
 
-/*
- * /api/users/
- */
 
 export async function getUsers(req, res) {
+  // TODO: avg_wpm, avg_acc
   let qry = 'SELECT id, name, registered, avg_wpm, avg_acc, num_typing_tests FROM users';
 
   let sort = "";
 
+  // TODO: req.query.order seems a bit unsafe here, eh?
+
   if (req.query.sort) {
-    // Process possible query parameters
     sort = {
       'wpm': `avg_wpm ${req.query.order}, avg_acc ${req.query.order}`,
       'typing_tests': `num_typing_tests ${req.query.order}`,
@@ -25,24 +24,23 @@ export async function getUsers(req, res) {
     qry += ` ORDER BY ${sort}`;
 
   try {
-    let { rows } = await (db.query(qry));
+    let { rows } = await db.query(qry);
     res.json(rows);
   } catch(err) {
       res.status(500).json({ error: err.message });
   }
 }
 
-/*
- * Return user account data
- */
+
 export async function getUser(req, res) {
   try {
+    // TODO: get avg_wpm & avg_acc not from user table
     let { rows } =
       await db.query('SELECT id, name, num_typing_tests, avg_wpm, avg_acc FROM users WHERE id=$1',
         [req.params.id]);
     
     if (rows.length === 0)
-      res.status(404).end();
+      return res.status(404).end();
     
     res.json(rows[0]);
   } catch(err) {
@@ -51,9 +49,6 @@ export async function getUser(req, res) {
 }
 
 
-/*
- * Delete user account
- */
 export async function deleteUser(req, res) {
   // For non-admins, only allow deleting your own account
   if (req.user.id !== req.params.id && !req.user.admin)
@@ -72,29 +67,22 @@ export async function deleteUser(req, res) {
 }
 
 
-/*
- * Return typing tests in which user has participated
- */
-export function getUserResults(req, res) {
-  loadUserResults(req.params.id)
-    .then(results => res.status(200).json(results))
-    .catch(err => res.status(500).json({ error: err.message }));
-}
 
 
 export async function saveResult(req, res) {
   if (isEmpty(req.body))
     return res.status(400).json({ error: "Missing request body" });
 
-  let userId = req.params.id;
+  // let userId = req.params.id;
+  let userId = parseInt(req.params.id, 10);
+  if (isNaN(userId))
+    return res.status(400).json({ error: "Invalid user id" });
+
   let { startTime, endTime, wpm, acc } = req.body;
   let { competition } = req.body;
 
-
-  // If no competitions was specified (undefined), A NULL value would be inserted even without
-  // this check, but it's here for the sake of explicitness
   if (!competition)
-    competition = null;
+    competition = null; // would be saved as null if !competition, but be explicit
 
   /*
    * Javascript timestamps are milliseconds since epoch, but PostgreSQL
@@ -106,9 +94,6 @@ export async function saveResult(req, res) {
       ' RETURNING start_time',
       [userId, competition, startTime / 1000.0, endTime / 1000.0, wpm, acc]);
 
-    res.set('Location', `/api/users/${userId}/results/${startTime}`);
-    res.status(201).end();
-
     // Add to competition store and update user statistics
     let result = req.body;
     let user = await loadUserObject(userId);
@@ -117,21 +102,14 @@ export async function saveResult(req, res) {
     if (competition)
       addResult(competition, result);
 
-    let newAvgWpm, newAvgAcc;
-    let { numTypingTests } = user;
+    await db.query(`
+      UPDATE users SET
+      avg_wpm=(SELECT avg(wpm) FROM results where usr=$1),
+      avg_acc=(SELECT avg(acc) FROM results where usr=$1),
+      num_typing_tests=$2`, [userId, user.numTypingTests + 1]);
 
-    if (numTypingTests > 0) {
-      newAvgWpm = (user.avgWpm + wpm) / 2.0;
-      newAvgAcc = (user.avgAcc + acc) / 2.0;
-    } else {
-      // This was the first typing test for the user
-      newAvgWpm = wpm;
-      newAvgAcc = acc;
-    }
-    await db.query(
-      'UPDATE users SET avg_wpm=$1, avg_acc=$2, num_typing_tests=$3 WHERE id=$4',
-      [newAvgWpm, newAvgAcc, numTypingTests + 1, user.id]
-    );
+    res.set('Location', `/api/users/${userId}/results/${startTime}`);
+    return res.status(201).end();
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
@@ -158,7 +136,6 @@ export async function getNotifications(req, res) {
  */
 
 export async function getEvent(eventId, userId) {
-  // let { rows } = await db.query('SELECT id, type FROM events WHERE id=$1', [eventId]);
   let { rows } = await db.query(
     'SELECT e.id, e.type, n.id AS notification_id' +
     ' FROM events e' +
@@ -233,13 +210,4 @@ export async function loadUserObject(userId) {
     throw new Error("User not found");
 
   return rows[0];
-}
-
-
-async function loadUserResults(userId) {
-  let userResults =
-    (await db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
-      [userId])).rows;
-  
-  return userResults;
 }

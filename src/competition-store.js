@@ -1,16 +1,16 @@
 /*
  * The competition store keeps track of competitions that are in progress.
- * The store's purpose is to minimise DB I/O if the open competitions need
+ * The store's purpose is to minimise db I/O if the open competitions need
  * to be queried often.
  */
 import { db, io } from './main';
 import { loadCompetitionResults } from './api/competition';
+import { psqlTimestampNow } from './util';
 
 export const competitions = {}; // Competition store, map from id to competition
-const clients = {};      // Client sockets by socket ID (i.e. socket.id -> to socket mapping)
+const clients = {};             // Client sockets by socket id (i.e. socket.id -> to socket mapping)
 
-
-const competitionDurationHours = 24;
+export const competitionDurationHours = 24;
 
 // Dictionary of userId,socket pairs which tell the socket to use
 // when sending notification for specific user.
@@ -43,8 +43,9 @@ export function addCompetition(competition) {
   competitions[competition.id].results = {};
 
   broadcastCompetitions();
+
   // Keep competition open for 24 hours
-  setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
+  //setTimeout(closeCompetition, competitionDurationHours * 60 * 60 * 1000, competition.id);
 }
 
 
@@ -54,11 +55,10 @@ export function addCompetition(competition) {
 // for participants of the competition in question.
 export async function addResult(competitionId, result, topResultNotifications = true) {
   let competition = competitions[competitionId];
-
   const userCurrentResult = competition.results[result.user.id];
 
   // If there's already a result that's better than this one, ignore the new result
-  if (userCurrentResult && userCurrentResult.wpm > result.wpm)
+  if (userCurrentResult && userCurrentResult.wpm >= result.wpm)
     return;
 
   competition.results[result.user.id] = result;
@@ -84,8 +84,7 @@ export async function addResult(competitionId, result, topResultNotifications = 
         userNotifications[userId] = notificationId;
       });
 
-      await notifyCompetitionParticipants(
-        competitionId, {
+      await notifyCompetitionParticipants({
           eventId,
           competition: competitionId,
           type: 'top_result',
@@ -94,7 +93,6 @@ export async function addResult(competitionId, result, topResultNotifications = 
           user: result.user,
         }, 
         userNotifications);
-
     } catch(e) {
       console.log("Warning: something in addResult() didn't go as planned.");
       console.log(`competitionId: ${competitionId}, userId: ${result.user.id}`);
@@ -109,8 +107,8 @@ export async function addResult(competitionId, result, topResultNotifications = 
 //
 // Arg `notificationUserMappings` maps user ids to notification ids ([{ userId: notificationId }]),
 // telling which notification belongs to whom.
-async function notifyCompetitionParticipants(competitionId, event, userNotificationMapping) {
-  let participants = await getParticipants(competitionId);
+async function notifyCompetitionParticipants(event, userNotificationMapping) {
+  let participants = await getParticipants(event.competition);
   for (let userId of participants) {
     if (notificationSubscribers[userId]) {
       let notificationId = userNotificationMapping[userId];
@@ -143,7 +141,6 @@ export function getCompetitionContent(competitionId) {
 }
 
 // Closes a competition:
-//  - set status to finished
 //  - create a competition 'finished' event
 //  - create notification for all participants about competition being finished
 async function closeCompetition(competitionId) {
@@ -184,8 +181,9 @@ async function getParticipants(competitionId) {
 // timestamps and setTimeouts.
 export async function restoreCompetitions() {
   try {
+    let now = psqlTimestampNow();
     let runningCompetitions =
-      (await db.query('SELECT id, created_at, created_by, finished, content, language, duration FROM competitions WHERE finished=false'))
+      (await db.query(`SELECT id, created_at, created_by, content, language, finish_at FROM competitions WHERE ${now} < cast(extract(epoch from finish_at) as bigint)`))
         .rows;
 
     for (let c of runningCompetitions) {
@@ -196,11 +194,11 @@ export async function restoreCompetitions() {
       let results = await loadCompetitionResults(c.id);
       for (let r of results)
         addResult(c.id, r, false);
-      }
-    } catch(e) {
-      console.log("Warning: can't restore competitions from db");
-      console.log(`${e.name}: ${e.message}`);
     }
+  } catch(e) {
+    console.log("Warning: can't restore competitions from db");
+    console.log(`${e.name}: ${e.message}`);
+  }
 }
 
 
@@ -225,11 +223,21 @@ export function newClient(socket) {
   });
 }
 
+
+/*
+ * Return all running competitions.
+ * Returns an array of competitions objects. Each competition has its results
+ * in an array.
+ */
 export function getRunningCompetitions() {
-  return Object.keys(competitions).map(key => {
-    const { id, language, createdAt, createdBy, duration, finished, content } = competitions[key];
-    return {
-      id, language, createdAt, createdBy, duration, finished, content,
-    };
-  });
+  const now = psqlTimestampNow();
+  
+  let runningCompetitions = Object.keys(competitions)
+    .map(competitionId => competitions[competitionId])
+    .filter(c => now < c.finishAt);
+
+  for (let c of runningCompetitions)
+    c.results = Object.keys(c.results).map(compId => c.results[compId]);
+
+  return runningCompetitions;
 }

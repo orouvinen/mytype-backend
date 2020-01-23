@@ -1,6 +1,8 @@
 import { db } from '../main';
-import { addCompetition, getRunningCompetitions, getCompetitionContent } from '../competition-store';
+import { psqlTimestampNow } from '../util';
+import { addCompetition, getRunningCompetitions, getCompetitionContent, addResult } from '../competition-store';
 import { loadUserObject } from './user';
+import { competitionDurationHours } from '../competition-store';
 
 // Loads a competition entry.
 // If there's a query parameter "loadResults" with a value of "true", then
@@ -14,11 +16,11 @@ export async function getCompetition(req, res) {
 
   try {
     let result = await
-      db.query('SELECT id, created_at, created_by, duration, language' + 
+      db.query('SELECT id, created_at, created_by, finish_at, language' +
         ' FROM competitions WHERE id=$1', [req.params.id]);
-      
+
     if (result.rows.length === 0)
-      return res.status(404).json({ error: 'Competition not found' });
+      return res.status(404).end();
 
     let competition = result.rows[0];
     if (loadResults)
@@ -30,7 +32,7 @@ export async function getCompetition(req, res) {
       competition.content = getCompetitionContent(competition.id);
 
     res.json(competition);
-  } catch(e) {
+  } catch (e) {
     res.status(500).json({ error: e.message });
   }
 }
@@ -39,11 +41,14 @@ export async function getCompetition(req, res) {
 export async function createCompetition(req, res) {
   const { language, content, createdBy } = req.body;
 
+  let finishAt = new Date(Date.now());
+  finishAt.setHours(finishAt.getHours() + 24);
+
   try {
     let result = await db.query(
-      'INSERT INTO competitions(language, created_by, content)' +
-      ' VALUES ($1, $3, $2) RETURNING id, language, created_at',
-      [language, content, createdBy]);
+      'INSERT INTO competitions(language, content, finish_at, created_by)' +
+      ' VALUES ($1, $2, $3, $4) RETURNING id, language, created_at',
+      [language, content, finishAt, createdBy]);
 
     if (result.rows.length !== 1)
       return res.status(500).end();
@@ -53,13 +58,13 @@ export async function createCompetition(req, res) {
       id: competitionId,
       createdAt: result.rows[0].createdAt,
       createdBy,
+      finishAt,
       language,
-      finished: false,
       content,
     });
     res.set('Location', '/api/competitions/' + competitionId);
     res.status(201).end();
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 }
@@ -70,12 +75,14 @@ export async function getCompetitions(req, res) {
 
   try {
     let comps = await loadCompetitions(req.query);
+
     for (let c of comps) {
       competitions[c.id] = c;
-      competitions[c.id].results = await loadCompetitionResults(c.id);
+      if (req.query.finished && req.query.finished == 'true')
+        c.results = await loadCompetitionResults(c.id);
     }
     res.json(competitions);
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
@@ -84,6 +91,12 @@ export async function getCompetitions(req, res) {
 export function getCompetitionResults(req, res) {
   loadCompetitionResults(req.params.id)
     .then(resultRows => res.status(200).json({ results: resultRows }))
+    .catch(err => res.status(500).json({ error: err.message }));
+}
+
+export function getUserResults(req, res) {
+  loadUserResults(req.params.id)
+    .then(results => res.status(200).json(results))
     .catch(err => res.status(500).json({ error: err.message }));
 }
 
@@ -100,12 +113,14 @@ async function loadCompetitions(query) {
   if (query.hasOwnProperty('finished') && query.finished.toLowerCase() === 'false')
     return Promise.resolve(getRunningCompetitions());
 
+  let { limit, offset } = query;
+
   let statusFilter = '';
   let limitClause = '';
   let offsetClause = '';
 
   if (query.hasOwnProperty('finished'))
-    statusFilter = ' WHERE finished=' + query.finished;
+    statusFilter = ' WHERE cast(extract(epoch from finish_at) as bigint) < ' + psqlTimestampNow();
 
   if (!isNaN(parseInt(query.limit)))
     limitClause = ' LIMIT ' + limit;
@@ -113,8 +128,8 @@ async function loadCompetitions(query) {
   if (!isNaN(parseInt(query.offset)))
     offsetClause = ' OFFSET ' + offset;
 
-  let competitions = (await 
-    db.query('SELECT id, language, created_at, created_by, finished FROM competitions ' +
+  let competitions = (await
+    db.query('SELECT id, language, created_at, created_by, finish_at FROM competitions ' +
       statusFilter + limitClause + offsetClause)).rows;
 
   return competitions;
@@ -132,23 +147,29 @@ async function loadCompetitions(query) {
  * Otherwise gets all the results for each player.
  */
 export async function loadCompetitionResults(competitionId, onlyTopResults = true) {
-  // let userObjectPromises = [];
-  // let rows = [];
-
   let queryTopResults = "";
   if (onlyTopResults)
     queryTopResults = 'SELECT r.usr, r.start_time, r.end_time, r.wpm, r.acc, r.competition FROM results r' +
-            ' INNER JOIN ' +
-            ' (SELECT MAX(wpm) wpm, usr FROM results WHERE competition=$1 GROUP BY usr) max' +
-            ' ON r.usr = max.usr AND r.wpm = max.wpm ORDER BY max.wpm DESC, r.end_time ASC';
+      ' INNER JOIN ' +
+      '   (SELECT MAX(wpm) wpm, usr FROM results WHERE competition=$1 GROUP BY usr) max' +
+      '   ON r.usr = max.usr AND r.wpm = max.wpm' +
+      ' ORDER BY max.wpm DESC, r.end_time ASC';
   else
     queryTopResults = 'SELECT usr, start_time, end_time, wpm, acc, competition FROM results WHERE competition=$1' +
-            ' ORDER BY wpm DESC, end_time ASC';
+      ' ORDER BY wpm DESC, end_time ASC';
 
   let competitionResults = (await db.query(queryTopResults, [competitionId])).rows;
   for (let r of competitionResults) {
     r.user = await loadUserObject(r.usr);
-    delete(r.usr); // Don't keep the user id hanging around for nothing
+    delete (r.usr); // Don't keep the user id hanging around for nothing
   }
   return competitionResults;
+}
+
+async function loadUserResults(userId) {
+  let userResults =
+    (await db.query('SELECT start_time, end_time, wpm, acc FROM results WHERE usr=$1',
+      [userId])).rows;
+  
+  return userResults;
 }

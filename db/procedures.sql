@@ -5,7 +5,6 @@ RETURNS INTEGER AS $$
 DECLARE
   event_id INTEGER;
 BEGIN
-  UPDATE competitions SET finished=true WHERE id = competition_id;
   SELECT create_competition_finished_event(competition_id) INTO event_id;
   RETURN event_id;
 END;

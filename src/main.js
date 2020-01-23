@@ -47,12 +47,8 @@ const dbConfig = {
 // Create a connection pool for db queries
 export const postgre = new pg.Pool(dbConfig);
 
-// Wrap the pg module's query function with our own.
-// The new function converts result object key identifiers to camelCase before
-// resolving with the result.
-//
-// (The new function is wrapped inside the `db` object so I don't need to change the
-// call sites, which all use the form `db.query` to do queries.
+// Wrap the pg module's query function with our own that
+// converts result object keys to camelCase.
 export const db = {
   query: function(text, values) {
     return new Promise((resolve, reject) => {
@@ -69,7 +65,6 @@ export const db = {
 // Frontend build and static assets from under public/
 app.use(express.static(path.join(process.env.PWD, '/public')));
 
-// JSON parser needed for API requests
 var jsonParser = bodyParser.json();
 
 // Auth token checker middleware for routes that need authorization for access
@@ -90,7 +85,7 @@ app.post('/api/competitions', jwt({ secret: auth.secret }), tokenChecker, jsonPa
 app.get('/api/competitions', jsonParser, competition.getCompetitions);
 app.get('/api/competitions/:id/results', jsonParser, competition.getCompetitionResults);
 app.get('/api/competitions/:id', jsonParser, competition.getCompetition);
-app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, user.getUserResults);
+app.get('/api/users/:id/results', jwt({ secret: auth.secret }), jsonParser, competition.getUserResults);
 app.post('/api/users/:id/results/', jwt({ secret: auth.secret }), tokenChecker, jsonParser, user.saveResult);
 app.get('/api/users/:id/notifications', jwt({ secret: auth.secret }), tokenChecker, user.getNotifications);
 

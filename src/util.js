@@ -34,3 +34,11 @@ export function snakeToCamel(obj) {
   });
   return camelised;
 }
+
+export function psqlTimestamp(jsTimestamp) {
+  return Math.round(jsTimestamp / 1000);
+}
+
+export function psqlTimestampNow() {
+  return psqlTimestamp(Date.now());
+}
